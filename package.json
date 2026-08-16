@@ -1,0 +1,18 @@
+{
+  "name": "coloring-in-details",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An iPad-first drawing and coloring PWA for kids.",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "test": "node scripts/smoke-test.mjs"
+  },
+  "keywords": [
+    "coloring",
+    "drawing",
+    "pwa",
+    "kids"
+  ],
+  "author": "Caroline Fenton",
+  "license": "MIT"
+}

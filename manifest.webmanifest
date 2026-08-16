@@ -1,0 +1,25 @@
+{
+  "name": "Color Corner",
+  "short_name": "Color Corner",
+  "description": "A glowy kawaii drawing and coloring studio for kids.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4e7f7",
+  "theme_color": "#f4e7f7",
+  "icons": [
+    {
+      "src": "icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

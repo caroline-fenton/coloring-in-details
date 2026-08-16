@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4e7f7" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Color Corner" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Color Corner</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+    <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=38" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand" aria-label="Color Corner">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path class="brand-heart" d="M24 40s-15-8.4-19-19.4C2.3 13.2 7.1 7 14.2 7c4.1 0 7 2.1 9.8 5.8C26.8 9.1 29.7 7 33.8 7c7.1 0 11.9 6.2 9.2 13.6C39 31.6 24 40 24 40Z" />
+              <path class="brand-crack" d="m25.8 13.2-4.2 7.1 5.8 2.9-5.4 10.2" />
+            </svg>
+          </span>
+          <span class="brand-name" aria-hidden="true">
+            <span>Color</span>
+            <span>Corner</span>
+          </span>
+        </div>
+        <nav class="view-tabs" aria-label="Views">
+          <button class="tab is-active" type="button" data-view="studio">Studio</button>
+          <button class="tab" type="button" data-view="gallery">Gallery</button>
+        </nav>
+        <div class="top-actions">
+          <button class="icon-button" type="button" data-action="undo" title="Undo" aria-label="Undo">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M10 7 5 12l5 5" />
+              <path d="M5 12h9c3.3 0 6 2.4 6 5.5" />
+            </svg>
+          </button>
+          <button class="icon-button" type="button" data-action="redo" title="Redo" aria-label="Redo">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M14 7l5 5-5 5" />
+              <path d="M19 12h-9c-3.3 0-6 2.4-6 5.5" />
+            </svg>
+          </button>
+          <button class="primary-button" type="button" data-action="save">Save</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="studio-view" data-panel="studio">
+          <aside class="tool-panel" aria-label="Art tools">
+            <div class="tool-group">
+              <div class="tool-label">Picture</div>
+              <div class="picture-strip" id="pictureStrip"></div>
+            </div>
+
+            <div class="tool-group">
+              <div class="tool-label">Tool</div>
+              <div class="brush-grid" id="brushGrid"></div>
+            </div>
+
+            <div class="tool-group">
+              <div class="slider-row">
+                <label for="sizeRange">Size</label>
+                <output class="size-preview" id="sizeOutput" for="sizeRange" aria-label="Selected brush size">
+                  <span class="size-preview-dot" aria-hidden="true"></span>
+                </output>
+              </div>
+              <input id="sizeRange" type="range" min="3" max="74" value="18" />
+            </div>
+
+            <div class="tool-group">
+              <div class="tool-label">Palette</div>
+              <div class="palette-tabs" id="paletteTabs"></div>
+              <div class="color-grid" id="colorGrid"></div>
+            </div>
+
+            <div class="tool-row">
+              <button class="soft-button" type="button" data-action="new">New</button>
+              <button class="soft-button" type="button" data-action="download">Export</button>
+            </div>
+          </aside>
+
+          <section class="canvas-stage" aria-label="Drawing canvas">
+            <div class="canvas-frame">
+              <canvas id="artCanvas" width="1600" height="1600" aria-label="Artwork surface"></canvas>
+            </div>
+          </section>
+        </section>
+
+        <section class="gallery-view is-hidden" data-panel="gallery" aria-label="Saved artwork">
+          <div class="gallery-head">
+            <h1>Artwork Gallery</h1>
+            <button class="primary-button" type="button" data-action="backToStudio">Make Art</button>
+          </div>
+          <div class="gallery-grid" id="galleryGrid"></div>
+          <div class="empty-gallery" id="emptyGallery">
+            <h2>No saved art yet</h2>
+            <p>Saved pictures will appear here.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="confirmDialog">
+      <form method="dialog">
+        <h2 id="dialogTitle">Start a new picture?</h2>
+        <p id="dialogMessage">Your current drawing will be cleared from the studio.</p>
+        <div class="dialog-actions">
+          <button class="soft-button" value="cancel">Cancel</button>
+          <button class="primary-button" value="confirm">OK</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="celebration" id="celebration" aria-hidden="true"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js?v=38" defer></script>
+  </body>
+</html>
