@@ -3,6 +3,4 @@
   <rect x="42" y="34" width="108" height="108" rx="34" fill="#b89ae8"/>
   <path d="M96 151s-60-34-76-78C9 43 28 18 57 18c16 0 28 8 39 23 11-15 23-23 39-23 29 0 48 25 37 55-16 44-76 78-76 78Z" fill="none" stroke="#fffaff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="m103 44-17 28 23 12-22 41" fill="none" stroke="#fffaff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M33 143c30-20 54-20 73 0s35 17 53-8" fill="none" stroke="#5b3e7a" stroke-width="10" stroke-linecap="round"/>
-  <path d="M49 48c17-18 37-23 60-13" fill="none" stroke="#f4bfdc" stroke-width="11" stroke-linecap="round"/>
 </svg>
