@@ -21,15 +21,13 @@ const celebration = document.querySelector("#celebration");
 
 const drawingLayer = document.createElement("canvas");
 const templateLayer = document.createElement("canvas");
-const fillBoundaryLayer = document.createElement("canvas");
 const scratchLayer = document.createElement("canvas");
-for (const layer of [drawingLayer, templateLayer, fillBoundaryLayer, scratchLayer]) {
+for (const layer of [drawingLayer, templateLayer, scratchLayer]) {
   layer.width = CANVAS_SIZE;
   layer.height = CANVAS_SIZE;
 }
 const drawingCtx = drawingLayer.getContext("2d", { willReadFrequently: true });
 const templateCtx = templateLayer.getContext("2d", { willReadFrequently: true });
-const fillBoundaryCtx = fillBoundaryLayer.getContext("2d", { willReadFrequently: true });
 const scratchCtx = scratchLayer.getContext("2d", { willReadFrequently: true });
 
 const brushes = [
@@ -256,7 +254,7 @@ function loadTemplate(pageId) {
   state.pageId = page.id;
   const image = new Image();
   image.onload = () => {
-    if (page.type === "raster-line") buildRasterLineTemplate(image, page);
+    if (page.type === "raster-line") buildRasterLineTemplate(image);
     else buildLineArtTemplate(image);
     draw();
   };
@@ -271,7 +269,6 @@ function getPage(pageId) {
 function buildLineArtTemplate(image) {
   scratchCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   templateCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  fillBoundaryCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   const scale = Math.min(CANVAS_SIZE / image.naturalWidth, CANVAS_SIZE / image.naturalHeight) * 0.94;
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
@@ -321,13 +318,11 @@ function buildLineArtTemplate(image) {
     }
   }
   templateCtx.putImageData(output, 0, 0);
-  fillBoundaryCtx.putImageData(output, 0, 0);
 }
 
-function buildRasterLineTemplate(image, page) {
+function buildRasterLineTemplate(image) {
   scratchCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   templateCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  fillBoundaryCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   const scale = Math.min(CANVAS_SIZE / image.naturalWidth, CANVAS_SIZE / image.naturalHeight) * 0.985;
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
@@ -354,37 +349,6 @@ function buildRasterLineTemplate(image, page) {
     }
   }
   templateCtx.putImageData(imageData, 0, 0);
-  fillBoundaryCtx.putImageData(imageData, 0, 0);
-  applyRasterTemplateRepairs(page.id, { x, y, scale });
-}
-
-function applyRasterTemplateRepairs(pageId, transform) {
-  const repairs = {
-    // Close the open hairline below Bunny Hat's central fringe so the face
-    // and bangs can be filled independently.
-    "bunny-hat": [
-      { start: [330, 285], control: [450, 230], end: [575, 275] }
-    ]
-  };
-  const segments = repairs[pageId];
-  if (!segments) return;
-
-  fillBoundaryCtx.save();
-  fillBoundaryCtx.strokeStyle = "rgba(34,32,49,1)";
-  fillBoundaryCtx.lineWidth = Math.max(3, transform.scale * 2.4);
-  fillBoundaryCtx.lineCap = "round";
-  for (const { start, control, end } of segments) {
-    fillBoundaryCtx.beginPath();
-    fillBoundaryCtx.moveTo(transform.x + start[0] * transform.scale, transform.y + start[1] * transform.scale);
-    fillBoundaryCtx.quadraticCurveTo(
-      transform.x + control[0] * transform.scale,
-      transform.y + control[1] * transform.scale,
-      transform.x + end[0] * transform.scale,
-      transform.y + end[1] * transform.scale
-    );
-    fillBoundaryCtx.stroke();
-  }
-  fillBoundaryCtx.restore();
 }
 
 function draw() {
@@ -668,7 +632,7 @@ function floodFill(x, y, color) {
   scratchCtx.drawImage(templateLayer, 0, 0);
   const imageData = scratchCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   const data = imageData.data;
-  const templateData = fillBoundaryCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data;
+  const templateData = templateCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data;
   const isTemplateLine = (index) => {
     const px = index % CANVAS_SIZE;
     const py = Math.floor(index / CANVAS_SIZE);
