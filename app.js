@@ -632,15 +632,30 @@ function floodFill(x, y, color) {
   scratchCtx.drawImage(templateLayer, 0, 0);
   const imageData = scratchCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   const data = imageData.data;
+  const templateData = templateCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data;
+  const isTemplateLine = (index) => {
+    const px = index % CANVAS_SIZE;
+    const py = Math.floor(index / CANVAS_SIZE);
+    for (let dy = -1; dy <= 1; dy += 1) {
+      const y = py + dy;
+      if (y < 0 || y >= CANVAS_SIZE) continue;
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const x = px + dx;
+        if (x < 0 || x >= CANVAS_SIZE) continue;
+        if (templateData[(y * CANVAS_SIZE + x) * 4 + 3] > 0) return true;
+      }
+    }
+    return false;
+  };
   const start = (y * CANVAS_SIZE + x) * 4;
   const target = [data[start], data[start + 1], data[start + 2], data[start + 3]];
   const fill = hexToRgba(color);
-  if (colorDistance(target, fill) < 16 || isLineColor(target)) return;
+  const startIndex = y * CANVAS_SIZE + x;
+  if (colorDistance(target, fill) < 16 || isTemplateLine(startIndex) || isLineColor(target)) return;
   const mask = new Uint8Array(CANVAS_SIZE * CANVAS_SIZE);
   const queue = new Int32Array(CANVAS_SIZE * CANVAS_SIZE);
   let head = 0;
   let tail = 0;
-  const startIndex = y * CANVAS_SIZE + x;
   queue[tail] = startIndex;
   mask[startIndex] = 2;
   tail += 1;
@@ -652,7 +667,7 @@ function floodFill(x, y, color) {
     const py = Math.floor(index / CANVAS_SIZE);
     const offset = index * 4;
     const current = [data[offset], data[offset + 1], data[offset + 2], data[offset + 3]];
-    if (isLineColor(current) || colorDistance(current, target) > tolerance) continue;
+    if (isTemplateLine(index) || isLineColor(current) || colorDistance(current, target) > tolerance) continue;
     mask[index] = 1;
     if (px + 1 < CANVAS_SIZE) {
       tail = enqueueFillPixel(queue, mask, tail, index + 1);
