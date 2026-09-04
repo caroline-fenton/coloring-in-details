@@ -361,6 +361,14 @@ main {
 .delete-button { padding: 0 16px; color: #8b355b; background: linear-gradient(135deg, #f9d8e3, #f4bfdc); box-shadow: inset 0 0 0 1px rgba(139, 53, 91, 0.08); font-weight: 1000; }
 .delete-button:disabled, .object-actions button:disabled { opacity: .42; }
 
+.forest-reset-button {
+  width: 100%;
+  min-height: 46px;
+  flex: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
 .object-size-output {
   min-width: 70px;
   padding: 9px 12px;

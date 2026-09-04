@@ -46,6 +46,7 @@ const checks = [
   [js.includes("forestObjects") && ["tree", "pine", "bush", "rock", "flower", "cloud", "sun", "mushroom"].every((name) => js.includes(`id: "${name}"`)), "Forest object library exists"],
   [js.includes("startSceneGesture") && js.includes("continueSceneGesture"), "Forest objects support touch movement and resizing"],
   [js.includes("deleteSelectedObject") && js.includes("duplicateSelectedObject"), "Forest object actions exist"],
+  [js.includes("resetForest") && html.includes('data-action="resetForest"'), "Forest can be reset in one action"],
   [js.includes("sceneObjects: state.sceneObjects"), "Forest scenes are saved with artwork"],
   [js.includes("studioDrawingLayer") && js.includes("forestDrawingLayer"), "Studio and Forest use independent drawing layers"],
   [js.includes("FOREST_WIDTH = 1920") && js.includes("FOREST_HEIGHT = 1200"), "Forest uses a landscape canvas"],

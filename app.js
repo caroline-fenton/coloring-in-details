@@ -132,7 +132,8 @@ let state = {
   forestMode: "build",
   sceneObjects: [],
   selectedObjectId: null,
-  sceneGesture: null
+  sceneGesture: null,
+  objectSizeChanging: false
 };
 
 const histories = {
@@ -326,8 +327,20 @@ function bindEvents() {
   document.querySelectorAll("[data-forest-mode]").forEach((button) => button.addEventListener("click", () => setForestMode(button.dataset.forestMode)));
   document.querySelector("[data-action='deleteObject']").addEventListener("click", deleteSelectedObject);
   document.querySelector("[data-action='duplicateObject']").addEventListener("click", duplicateSelectedObject);
-  objectSizeRange.addEventListener("input", resizeSelectedObject);
-  objectSizeRange.addEventListener("change", commitSceneChange);
+  document.querySelector("[data-action='resetForest']").addEventListener("click", resetForest);
+  objectSizeRange.addEventListener("pointerdown", beginObjectSizeChange);
+  objectSizeRange.addEventListener("keydown", (event) => {
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(event.key)) beginObjectSizeChange();
+  });
+  objectSizeRange.addEventListener("input", () => {
+    beginObjectSizeChange();
+    resizeSelectedObject();
+  });
+  objectSizeRange.addEventListener("change", () => {
+    if (!state.objectSizeChanging) return;
+    state.objectSizeChanging = false;
+    commitSceneChange();
+  });
   pictureStrip.addEventListener("click", (event) => {
     const button = event.target.closest("[data-page]");
     if (!button || button.dataset.page === state.pageId) return;
@@ -703,6 +716,12 @@ function resizeSelectedObject() {
   draw();
 }
 
+function beginObjectSizeChange() {
+  if (!selectedSceneObject() || state.objectSizeChanging) return;
+  pushUndo();
+  state.objectSizeChanging = true;
+}
+
 function commitSceneChange() {
   redoStack.length = 0;
   renderScene();
@@ -725,11 +744,28 @@ function duplicateSelectedObject() {
   const selected = selectedSceneObject();
   if (!selected) return;
   pushUndo();
-  const copy = { ...selected, id: `${selected.type}-${Date.now()}`, x: clamp(selected.x + 90, 80, 1520), y: clamp(selected.y + 70, 80, 1520) };
+  const halfSize = baseObjectSize(selected.type) * selected.scale / 2;
+  const copy = {
+    ...selected,
+    id: `${selected.type}-${Date.now()}`,
+    x: clamp(selected.x + 90, halfSize, FOREST_WIDTH - halfSize),
+    y: clamp(selected.y + 70, halfSize, FOREST_HEIGHT - halfSize)
+  };
   state.sceneObjects.push(copy);
   state.selectedObjectId = copy.id;
   state.dirty = true;
   commitSceneChange();
+}
+
+function resetForest() {
+  confirmAction("Start over with a new forest?", "This clears every placed object and all coloring in your current forest.", () => {
+    clearDrawing();
+    pushUndo();
+    draw();
+    autosave();
+    updateSelectedControls();
+    showToast("Forest cleared");
+  });
 }
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
@@ -1172,8 +1208,8 @@ function restoreSnapshot(snapshot) {
 function undo() {
   if (undoStack.length <= 1) return;
   redoStack.push(captureSnapshot());
-  undoStack.pop();
-  restoreSnapshot(undoStack[undoStack.length - 1]);
+  const snapshot = undoStack.pop();
+  restoreSnapshot(snapshot);
   draw();
   autosave();
   updateUndoRedo();
@@ -1181,9 +1217,9 @@ function undo() {
 
 function redo() {
   if (!redoStack.length) return;
-  const imageData = redoStack.pop();
-  undoStack.push(imageData);
-  restoreSnapshot(imageData);
+  const snapshot = redoStack.pop();
+  undoStack.push(captureSnapshot());
+  restoreSnapshot(snapshot);
   draw();
   autosave();
   updateUndoRedo();
