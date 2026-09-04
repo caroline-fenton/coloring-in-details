@@ -30,6 +30,7 @@ const checks = [
   [html.includes("<canvas"), "canvas exists"],
   [html.includes("manifest.webmanifest"), "manifest linked"],
   [js.includes("floodFill"), "fill tool exists"],
+  [/let state = \{[\s\S]*?brush: "fill"/.test(js), "fill tool is the default"],
   [js.includes("drawSticker"), "sticker tool exists"],
   [js.includes("glitterStroke"), "glitter tool exists"],
   [js.includes("celebrateSave"), "save celebration exists"],
