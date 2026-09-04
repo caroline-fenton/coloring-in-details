@@ -442,8 +442,8 @@ input[type="range"] {
   appearance: none;
   -webkit-appearance: none;
   background:
-    linear-gradient(90deg, #c9b4ee, #dc91d0 35%, #f197a6 65%, #f4bd72) 0 50% / var(--range-progress) 8px no-repeat,
-    linear-gradient(90deg, #d9c8f2, #cdb8ed) 0 50% / 100% 8px no-repeat;
+    linear-gradient(90deg, transparent 0 var(--range-progress), rgba(217, 200, 242, 0.96) var(--range-progress), rgba(205, 184, 237, 0.96) 100%) 0 50% / 100% 8px no-repeat,
+    linear-gradient(90deg, #c9b4ee, #dc91d0 35%, #f197a6 65%, #f4bd72) 0 50% / 100% 8px no-repeat;
   cursor: pointer;
 }
 
@@ -461,13 +461,13 @@ input[type="range"]::-webkit-slider-runnable-track {
 input[type="range"]::-moz-range-track {
   height: 8px;
   border-radius: 999px;
-  background: #d9c8f2;
+  background: transparent;
 }
 
 input[type="range"]::-moz-range-progress {
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #c9b4ee, #dc91d0 35%, #f197a6 65%, #f4bd72);
+  background: transparent;
 }
 
 input[type="range"]::-webkit-slider-thumb {
