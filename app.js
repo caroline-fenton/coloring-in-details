@@ -145,6 +145,7 @@ let redoStack = histories.coloring.redo;
 let toastTimer = null;
 let dbPromise = null;
 let lastRangeSparkle = 0;
+let artworkLoadToken = 0;
 
 function activateWorkspace(mode) {
   document.body.classList.toggle("is-forest-workspace", mode === "forest");
@@ -418,6 +419,7 @@ function bindEvents() {
 }
 
 function setView(view) {
+  artworkLoadToken += 1;
   const studioView = view === "studio" || view === "forest";
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.view === view));
   document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("is-hidden", panel.dataset.panel !== (studioView ? "studio" : view)));
@@ -603,8 +605,13 @@ function continueDrawing(event) {
 
 function stopDrawing() {
   if (state.sceneGesture) {
+    const gesture = state.sceneGesture;
     state.sceneGesture = null;
-    commitSceneChange();
+    if (gesture.changed) commitSceneChange();
+    else {
+      draw();
+      updateForestControls();
+    }
     return;
   }
   if (!state.drawing) return;
@@ -672,16 +679,14 @@ function startSceneGesture(point) {
   if (selected) {
     const bounds = sceneObjectBounds(selected);
     if (Math.hypot(point.x - bounds.right, point.y - bounds.bottom) < 100) {
-      pushUndo();
-      state.sceneGesture = { kind: "resize", start: point, startScale: selected.scale, objectId: selected.id };
+      state.sceneGesture = { kind: "resize", start: point, startScale: selected.scale, objectId: selected.id, changed: false };
       return;
     }
   }
   const object = hitSceneObject(point);
   state.selectedObjectId = object?.id || null;
   if (object) {
-    pushUndo();
-    state.sceneGesture = { kind: "move", start: point, startX: object.x, startY: object.y, objectId: object.id };
+    state.sceneGesture = { kind: "move", start: point, startX: object.x, startY: object.y, objectId: object.id, changed: false };
   }
   draw();
   updateForestControls();
@@ -692,12 +697,21 @@ function continueSceneGesture(point) {
   const object = state.sceneObjects.find((item) => item.id === gesture.objectId);
   if (!object) return;
   if (gesture.kind === "move") {
-    object.x = clamp(gesture.startX + point.x - gesture.start.x, 70, FOREST_WIDTH - 70);
-    object.y = clamp(gesture.startY + point.y - gesture.start.y, 70, FOREST_HEIGHT - 70);
+    const nextX = clamp(gesture.startX + point.x - gesture.start.x, 70, FOREST_WIDTH - 70);
+    const nextY = clamp(gesture.startY + point.y - gesture.start.y, 70, FOREST_HEIGHT - 70);
+    if (!gesture.changed && Math.hypot(nextX - gesture.startX, nextY - gesture.startY) < 2) return;
+    if (!gesture.changed) pushUndo();
+    gesture.changed = true;
+    object.x = nextX;
+    object.y = nextY;
   } else {
     const startDistance = Math.max(40, Math.hypot(gesture.start.x - object.x, gesture.start.y - object.y));
     const nextDistance = Math.hypot(point.x - object.x, point.y - object.y);
-    object.scale = clamp(gesture.startScale * nextDistance / startDistance, 0.45, 1.9);
+    const nextScale = clamp(gesture.startScale * nextDistance / startDistance, 0.45, 1.9);
+    if (!gesture.changed && Math.abs(nextScale - gesture.startScale) < 0.005) return;
+    if (!gesture.changed) pushUndo();
+    gesture.changed = true;
+    object.scale = nextScale;
   }
   state.dirty = true;
   renderScene();
@@ -1313,11 +1327,14 @@ async function readArtworks() {
 }
 
 async function loadArtwork(id) {
+  const loadToken = ++artworkLoadToken;
   const art = await dbGet(ART_STORE, id);
-  if (!art) return;
+  if (!art || loadToken !== artworkLoadToken) return;
   state.pageId = art.pageId;
   state.projectMode = art.projectMode || "coloring";
   activateWorkspace(state.projectMode);
+  const targetLayer = drawingLayer;
+  const targetContext = drawingCtx;
   clearDrawing();
   if (state.projectMode === "forest") {
     state.sceneObjects = (art.sceneObjects || []).map((object) => ({ ...object }));
@@ -1326,7 +1343,8 @@ async function loadArtwork(id) {
   else loadTemplate(state.pageId);
   const image = new Image();
   image.onload = () => {
-    drawingCtx.drawImage(image, 0, 0, activeWidth(), activeHeight());
+    if (loadToken !== artworkLoadToken || drawingLayer !== targetLayer) return;
+    targetContext.drawImage(image, 0, 0, targetLayer.width, targetLayer.height);
     pushUndo();
     draw();
     autosave();
