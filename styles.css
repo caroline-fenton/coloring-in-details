@@ -29,6 +29,7 @@ body {
   min-height: 100%;
   margin: 0;
   overflow: hidden;
+  overscroll-behavior: none;
   background:
     linear-gradient(180deg, rgba(246, 228, 246, 0.96) 0%, rgba(243, 231, 253, 0.98) 100%),
     linear-gradient(90deg, rgba(244, 191, 220, 0.16), rgba(184, 154, 232, 0.16), rgba(167, 229, 216, 0.14));
@@ -42,6 +43,7 @@ input {
 
 button {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .app-shell {
@@ -233,6 +235,9 @@ main {
   gap: 14px;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 16px;
   border-radius: 30px;
   background:
@@ -249,6 +254,124 @@ main {
   display: grid;
   gap: 10px;
 }
+
+.forest-mode-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px 12px 13px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 255, 0.96), rgba(249, 239, 253, 0.88)),
+    linear-gradient(135deg, rgba(184, 154, 232, 0.2), rgba(244, 191, 220, 0.18));
+  box-shadow:
+    inset 0 0 0 1px rgba(91, 62, 122, 0.08),
+    0 8px 18px rgba(91, 62, 122, 0.07);
+}
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(91, 62, 122, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(91, 62, 122, 0.05);
+}
+
+.mode-button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 1000;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 140ms ease, color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.mode-button.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--lilac), var(--hot-pink));
+  box-shadow: 0 0 22px rgba(235, 143, 208, 0.35), 0 6px 14px rgba(91, 62, 122, 0.12);
+}
+
+.mode-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.object-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.object-button {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  place-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 92px;
+  padding: 7px 6px 8px;
+  border: 0;
+  border-radius: 20px;
+  color: var(--ink);
+  background: rgba(255, 250, 255, 0.84);
+  box-shadow: inset 0 0 0 1px rgba(91, 62, 122, 0.08), 0 8px 16px rgba(91, 62, 122, 0.07);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.object-icon {
+  width: 62px;
+  height: 62px;
+  background-image: url("assets/forest/forest-sprites.png");
+  background-position: var(--sprite-x) var(--sprite-y);
+  background-size: 400% 200%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 4px 5px rgba(91, 62, 122, 0.16));
+}
+
+.object-button small {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 1000;
+  line-height: 1.05;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.object-button.is-active {
+  background: linear-gradient(180deg, rgba(255, 250, 255, 0.98), rgba(255, 240, 250, 0.92));
+  box-shadow: inset 0 0 0 3px var(--ink), 0 0 24px rgba(244, 191, 220, 0.52);
+}
+
+.object-button:active { transform: scale(0.96); }
+
+.object-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.forest-action { min-height: 48px; border: 0; border-radius: 22px; cursor: pointer; transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease; }
+.delete-button { padding: 0 16px; color: #8b355b; background: linear-gradient(135deg, #f9d8e3, #f4bfdc); box-shadow: inset 0 0 0 1px rgba(139, 53, 91, 0.08); font-weight: 1000; }
+.delete-button:disabled, .object-actions button:disabled { opacity: .42; }
+
+.object-size-output {
+  min-width: 70px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(255, 250, 255, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(91, 62, 122, 0.08), 0 8px 18px rgba(91, 62, 122, 0.08);
+  text-align: center;
+}
+
+.forest-size-range { padding: 0 2px; }
 
 .tool-label,
 .slider-row {
@@ -344,6 +467,9 @@ main {
 .tab:hover,
 .picture-button:hover,
 .brush-button:hover,
+.object-button:hover,
+.mode-button:hover,
+.forest-action:hover:not(:disabled),
 .palette-button:hover,
 .primary-button:hover,
 .soft-button:hover,
@@ -358,6 +484,25 @@ main {
     0 0 22px color-mix(in srgb, var(--hot-pink) 44%, transparent),
     0 10px 20px rgba(91, 62, 122, 0.1);
   color: var(--midnight);
+}
+
+.mode-button.is-active:hover {
+  color: #fff;
+  background: linear-gradient(135deg, var(--lilac), var(--hot-pink));
+}
+
+.object-button.is-active:hover {
+  box-shadow:
+    inset 0 0 0 3px var(--hot-pink),
+    0 0 28px color-mix(in srgb, var(--hot-pink) 56%, transparent),
+    0 10px 20px rgba(91, 62, 122, 0.1);
+}
+
+.mode-button:focus-visible,
+.object-button:focus-visible,
+.forest-action:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
 }
 
 .picture-button img {
@@ -445,6 +590,11 @@ input[type="range"] {
     linear-gradient(90deg, transparent 0 var(--range-progress), rgba(217, 200, 242, 0.96) var(--range-progress), rgba(205, 184, 237, 0.96) 100%) 0 50% / 100% 8px no-repeat,
     linear-gradient(90deg, #c9b4ee, #dc91d0 35%, #f197a6 65%, #f4bd72) 0 50% / 100% 8px no-repeat;
   cursor: pointer;
+}
+
+input[type="range"]:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .size-range-wrap {
@@ -611,6 +761,8 @@ input[type="range"]:focus-visible::-moz-range-thumb,
   place-items: center;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+  touch-action: none;
   padding: 12px;
   border-radius: 34px;
   background:
@@ -620,9 +772,14 @@ input[type="range"]:focus-visible::-moz-range-thumb,
 }
 
 .canvas-frame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
   width: min(100%, calc(100dvh - 116px));
   max-width: 100%;
+  max-height: 100%;
   aspect-ratio: 1;
+  overflow: hidden;
   border-radius: 32px;
   padding: clamp(10px, 1.2vw, 16px);
   background:
@@ -633,10 +790,64 @@ input[type="range"]:focus-visible::-moz-range-thumb,
     0 0 54px rgba(244, 191, 220, 0.4);
 }
 
+/* Forest is a scene-building workspace, so its canvas gets priority over the
+   surrounding chrome while Studio keeps its cozy coloring-page proportions. */
+.is-forest-workspace .studio-view {
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.is-forest-workspace .canvas-stage {
+  padding: 4px;
+  border-radius: 32px;
+}
+
+.is-forest-workspace .canvas-frame {
+  width: min(100%, calc((100dvh - 104px) * 1.6));
+  aspect-ratio: 8 / 5;
+  padding: clamp(7px, 0.75vw, 10px);
+  border-radius: 30px;
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 250, 255, 0.66),
+    0 16px 34px rgba(91, 62, 122, 0.16),
+    0 0 42px rgba(244, 191, 220, 0.34);
+}
+
+.is-forest-workspace #artCanvas {
+  border-radius: 22px;
+}
+
+.canvas-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  z-index: 3;
+  width: max-content;
+  max-width: calc(100% - 48px);
+  padding: 10px 14px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(48, 36, 58, .82);
+  font-size: clamp(.7rem, 1.5vw, .85rem);
+  font-weight: 900;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+@media (pointer: coarse) {
+  button, input[type="range"] { min-height: 48px; }
+  .object-button { min-height: 70px; }
+}
+
 #artCanvas {
   display: block;
+  min-width: 0;
+  min-height: 0;
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   border-radius: 24px;
   background: var(--paper);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 0 0 1px rgba(91, 62, 122, 0.08);
@@ -684,6 +895,10 @@ input[type="range"]:focus-visible::-moz-range-thumb,
   aspect-ratio: 1;
   object-fit: cover;
   background: var(--paper);
+}
+
+.gallery-card.is-forest img {
+  aspect-ratio: 8 / 5;
 }
 
 .gallery-card footer {
@@ -845,6 +1060,11 @@ dialog p {
     grid-template-columns: 1fr;
   }
 
+  .is-forest-workspace .studio-view {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
   .tool-panel {
     order: 2;
     display: grid;
@@ -858,6 +1078,10 @@ dialog p {
 
   .canvas-frame {
     width: min(100%, calc(100dvh - 210px));
+  }
+
+  .is-forest-workspace .canvas-frame {
+    width: min(100%, calc((100dvh - 202px) * 1.6));
   }
 }
 

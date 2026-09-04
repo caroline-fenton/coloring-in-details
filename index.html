@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#f4e7f7" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Color Corner" />
@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.svg" />
     <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=43" />
+    <link rel="stylesheet" href="styles.css?v=58" />
   </head>
   <body>
     <div class="app-shell">
@@ -30,6 +30,7 @@
         </div>
         <nav class="view-tabs" aria-label="Views">
           <button class="tab is-active" type="button" data-view="studio">Studio</button>
+          <button class="tab" type="button" data-view="forest">Forest</button>
           <button class="tab" type="button" data-view="gallery">Gallery</button>
         </nav>
         <div class="top-actions">
@@ -52,17 +53,42 @@
       <main>
         <section class="studio-view" data-panel="studio">
           <aside class="tool-panel" aria-label="Art tools">
-            <div class="tool-group">
+            <div class="forest-mode-panel is-hidden" id="forestModePanel">
+              <div class="tool-label">Forest mode</div>
+              <div class="mode-switch" role="group" aria-label="Forest mode">
+                <button class="mode-button is-active" type="button" data-forest-mode="build">Build</button>
+                <button class="mode-button" type="button" data-forest-mode="draw">Color</button>
+              </div>
+              <p class="mode-hint" id="forestHint">Tap an object, then drag it into your scene.</p>
+            </div>
+
+            <div class="tool-group forest-build-tools is-hidden" id="forestBuildTools">
+              <div class="tool-label">Add to forest</div>
+              <div class="object-grid" id="objectGrid"></div>
+              <div class="slider-row">
+                <label for="objectSizeRange">Object size</label>
+                <output class="object-size-output" id="objectSizeOutput" for="objectSizeRange">100%</output>
+              </div>
+              <div class="size-range-wrap forest-size-range">
+                <input id="objectSizeRange" type="range" min="45" max="190" value="100" aria-label="Selected object size" />
+              </div>
+              <div class="object-actions">
+                <button class="soft-button forest-action" type="button" data-action="duplicateObject">Duplicate</button>
+                <button class="delete-button forest-action" type="button" data-action="deleteObject">Delete</button>
+              </div>
+            </div>
+
+            <div class="tool-group studio-only">
               <div class="tool-label">Picture</div>
               <div class="picture-strip" id="pictureStrip"></div>
             </div>
 
-            <div class="tool-group">
+            <div class="tool-group draw-tools">
               <div class="tool-label">Tool</div>
               <div class="brush-grid" id="brushGrid"></div>
             </div>
 
-            <div class="tool-group">
+            <div class="tool-group draw-tools">
               <div class="slider-row">
                 <label for="sizeRange">Size</label>
                 <output class="size-preview" id="sizeOutput" for="sizeRange" aria-label="Selected brush size">
@@ -75,21 +101,22 @@
               </div>
             </div>
 
-            <div class="tool-group">
+            <div class="tool-group draw-tools">
               <div class="tool-label">Palette</div>
               <div class="palette-tabs" id="paletteTabs"></div>
               <div class="color-grid" id="colorGrid"></div>
             </div>
 
-            <div class="tool-row">
+            <div class="tool-row draw-tools">
               <button class="soft-button" type="button" data-action="new">New</button>
               <button class="soft-button" type="button" data-action="download">Export</button>
             </div>
           </aside>
 
           <section class="canvas-stage" aria-label="Drawing canvas">
-            <div class="canvas-frame">
+            <div class="canvas-frame" id="canvasFrame">
               <canvas id="artCanvas" width="1600" height="1600" aria-label="Artwork surface"></canvas>
+              <div class="canvas-tip is-hidden" id="canvasTip" role="status">Drag to move • pull the pink corner to resize</div>
             </div>
           </section>
         </section>
@@ -121,6 +148,6 @@
 
     <div class="celebration" id="celebration" aria-hidden="true"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=43" defer></script>
+    <script src="app.js?v=58" defer></script>
   </body>
 </html>

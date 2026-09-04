@@ -1,4 +1,4 @@
-const CACHE_NAME = "color-corner-v43";
+const CACHE_NAME = "color-corner-v58";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,9 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./icons/icon-192.svg",
   "./icons/icon-512.svg",
+  "./assets/forest/forest-sprites.png",
+  "./assets/forest/enchanted-background.png",
+  "./assets/forest/enchanted-background-landscape.png",
   "./assets/coloring-pages/anime-kitten.png",
   "./assets/coloring-pages/anime-artist.png",
   "./assets/coloring-pages/anime-moon-puppy.png",
