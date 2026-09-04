@@ -1202,10 +1202,9 @@ function pushUndo() {
   updateUndoRedo();
 }
 
-function captureSnapshot() {
-  const sceneOnly = state.projectMode === "forest" && state.forestMode === "build";
+function captureSnapshot({ includeDrawing = !(state.projectMode === "forest" && state.forestMode === "build") } = {}) {
   return {
-    drawing: sceneOnly ? null : drawingCtx.getImageData(0, 0, activeWidth(), activeHeight()),
+    drawing: includeDrawing ? drawingCtx.getImageData(0, 0, activeWidth(), activeHeight()) : null,
     sceneObjects: state.projectMode === "forest" ? state.sceneObjects.map((object) => ({ ...object })) : null,
     projectMode: state.projectMode
   };
@@ -1221,12 +1220,13 @@ function restoreSnapshot(snapshot) {
   }
   state.selectedObjectId = null;
   renderScene();
+  updateForestControls();
 }
 
 function undo() {
   if (undoStack.length <= 1) return;
-  redoStack.push(captureSnapshot());
   const snapshot = undoStack.pop();
+  redoStack.push(captureSnapshot({ includeDrawing: Boolean(snapshot.drawing) }));
   restoreSnapshot(snapshot);
   draw();
   autosave();
@@ -1236,7 +1236,7 @@ function undo() {
 function redo() {
   if (!redoStack.length) return;
   const snapshot = redoStack.pop();
-  undoStack.push(captureSnapshot());
+  undoStack.push(captureSnapshot({ includeDrawing: Boolean(snapshot.drawing) }));
   restoreSnapshot(snapshot);
   draw();
   autosave();
