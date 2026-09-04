@@ -12,6 +12,8 @@ const brushGrid = document.querySelector("#brushGrid");
 const paletteTabs = document.querySelector("#paletteTabs");
 const colorGrid = document.querySelector("#colorGrid");
 const sizeRange = document.querySelector("#sizeRange");
+const sizeRangeWrap = document.querySelector("#sizeRangeWrap");
+const rangeSparkles = document.querySelector("#rangeSparkles");
 const sizeOutput = document.querySelector("#sizeOutput");
 const galleryGrid = document.querySelector("#galleryGrid");
 const emptyGallery = document.querySelector("#emptyGallery");
@@ -97,6 +99,7 @@ let undoStack = [];
 let redoStack = [];
 let toastTimer = null;
 let dbPromise = null;
+let lastRangeSparkle = 0;
 
 async function init() {
   renderControls();
@@ -161,6 +164,7 @@ function updateSelectedControls() {
   document.querySelectorAll("[data-palette]").forEach((button) => button.classList.toggle("is-active", button.dataset.palette === state.palette));
   document.querySelectorAll("[data-color]").forEach((button) => button.classList.toggle("is-active", button.dataset.color === state.color));
   sizeRange.value = String(state.size);
+  updateSizeRange();
   updateSizePreview();
 }
 
@@ -170,6 +174,48 @@ function updateSizePreview() {
   sizeOutput.style.setProperty("--preview-color", state.brush === "eraser" ? "var(--paper)" : state.color);
   sizeOutput.dataset.brush = state.brush;
   sizeOutput.setAttribute("aria-label", `${activeBrush().label} size preview`);
+}
+
+function updateSizeRange({ sparkle = false } = {}) {
+  const min = Number(sizeRange.min);
+  const max = Number(sizeRange.max);
+  const progress = (Number(sizeRange.value) - min) / (max - min);
+  const sunsetColor = interpolateSunsetColor(progress);
+  sizeRange.style.setProperty("--range-progress", `${(progress * 100).toFixed(2)}%`);
+  sizeRange.style.setProperty("--slider-sunset", sunsetColor);
+  if (sparkle) emitRangeSparkles(progress, sunsetColor);
+}
+
+function interpolateSunsetColor(progress) {
+  const stops = ["#c9b4ee", "#dc91d0", "#f197a6", "#f4bd72"];
+  const scaled = Math.min(1, Math.max(0, progress)) * (stops.length - 1);
+  const index = Math.min(stops.length - 2, Math.floor(scaled));
+  const mix = scaled - index;
+  const from = stops[index].match(/\w\w/g).map((value) => parseInt(value, 16));
+  const to = stops[index + 1].match(/\w\w/g).map((value) => parseInt(value, 16));
+  const channels = from.map((value, channel) => Math.round(value + (to[channel] - value) * mix));
+  return `rgb(${channels.join(" ")})`;
+}
+
+function emitRangeSparkles(progress, color) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const now = performance.now();
+  if (now - lastRangeSparkle < 38) return;
+  lastRangeSparkle = now;
+  const thumbInset = 11.5;
+  const x = thumbInset + progress * Math.max(0, sizeRange.clientWidth - thumbInset * 2);
+  const sparkleColors = [color, "#7c3b5f", "#d87264"];
+  for (let index = 0; index < 3; index += 1) {
+    const sparkle = document.createElement("span");
+    sparkle.className = "range-sparkle";
+    sparkle.style.setProperty("--sparkle-x", `${x}px`);
+    sparkle.style.setProperty("--sparkle-size", `${7 + Math.random() * 5}px`);
+    sparkle.style.setProperty("--sparkle-color", sparkleColors[index]);
+    sparkle.style.setProperty("--sparkle-drift", `${(Math.random() - 0.5) * 4}px`);
+    sparkle.style.setProperty("--sparkle-rise", `${1 + Math.random() * 3}px`);
+    sparkle.addEventListener("animationend", () => sparkle.remove(), { once: true });
+    rangeSparkles.appendChild(sparkle);
+  }
 }
 
 function bindEvents() {
@@ -214,7 +260,12 @@ function bindEvents() {
   sizeRange.addEventListener("input", () => {
     state.size = Number(sizeRange.value);
     updateSizePreview();
+    updateSizeRange({ sparkle: true });
   });
+  sizeRange.addEventListener("pointerdown", () => sizeRangeWrap.classList.add("is-sliding"));
+  sizeRange.addEventListener("pointerup", () => sizeRangeWrap.classList.remove("is-sliding"));
+  sizeRange.addEventListener("pointercancel", () => sizeRangeWrap.classList.remove("is-sliding"));
+  sizeRange.addEventListener("blur", () => sizeRangeWrap.classList.remove("is-sliding"));
 
   document.querySelector("[data-action='undo']").addEventListener("click", undo);
   document.querySelector("[data-action='redo']").addEventListener("click", redo);
