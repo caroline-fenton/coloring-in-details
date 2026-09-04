@@ -51,6 +51,7 @@ const checks = [
   [js.includes("studioDrawingLayer") && js.includes("forestDrawingLayer"), "Studio and Forest use independent drawing layers"],
   [js.includes("FOREST_WIDTH = 1920") && js.includes("FOREST_HEIGHT = 1200"), "Forest uses a landscape canvas"],
   [js.includes("histories") && js.includes("activateWorkspace"), "Studio and Forest use independent undo histories"],
+  [js.includes("sceneOnly ? null") && js.includes("undoStack.length > 6"), "Undo history is bounded for iPad memory"],
   [js.includes("studioDrawing:") && js.includes("forestDrawing:"), "Both workspaces autosave independently"],
   [js.includes("indexedDB"), "durable gallery storage exists"],
   [manifest.display === "standalone", "PWA standalone display"],

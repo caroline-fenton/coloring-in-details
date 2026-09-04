@@ -329,19 +329,14 @@ function bindEvents() {
   document.querySelector("[data-action='deleteObject']").addEventListener("click", deleteSelectedObject);
   document.querySelector("[data-action='duplicateObject']").addEventListener("click", duplicateSelectedObject);
   document.querySelector("[data-action='resetForest']").addEventListener("click", resetForest);
-  objectSizeRange.addEventListener("pointerdown", beginObjectSizeChange);
-  objectSizeRange.addEventListener("keydown", (event) => {
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(event.key)) beginObjectSizeChange();
-  });
   objectSizeRange.addEventListener("input", () => {
     beginObjectSizeChange();
     resizeSelectedObject();
   });
-  objectSizeRange.addEventListener("change", () => {
-    if (!state.objectSizeChanging) return;
-    state.objectSizeChanging = false;
-    commitSceneChange();
-  });
+  objectSizeRange.addEventListener("change", endObjectSizeChange);
+  objectSizeRange.addEventListener("pointerup", endObjectSizeChange);
+  objectSizeRange.addEventListener("pointercancel", endObjectSizeChange);
+  objectSizeRange.addEventListener("blur", endObjectSizeChange);
   pictureStrip.addEventListener("click", (event) => {
     const button = event.target.closest("[data-page]");
     if (!button || button.dataset.page === state.pageId) return;
@@ -734,6 +729,12 @@ function beginObjectSizeChange() {
   if (!selectedSceneObject() || state.objectSizeChanging) return;
   pushUndo();
   state.objectSizeChanging = true;
+}
+
+function endObjectSizeChange() {
+  if (!state.objectSizeChanging) return;
+  state.objectSizeChanging = false;
+  commitSceneChange();
 }
 
 function commitSceneChange() {
@@ -1197,21 +1198,24 @@ function hexToRgba(hex) {
 
 function pushUndo() {
   undoStack.push(captureSnapshot());
-  if (undoStack.length > 14) undoStack.shift();
+  if (undoStack.length > 6) undoStack.shift();
   updateUndoRedo();
 }
 
 function captureSnapshot() {
+  const sceneOnly = state.projectMode === "forest" && state.forestMode === "build";
   return {
-    drawing: drawingCtx.getImageData(0, 0, activeWidth(), activeHeight()),
+    drawing: sceneOnly ? null : drawingCtx.getImageData(0, 0, activeWidth(), activeHeight()),
     sceneObjects: state.projectMode === "forest" ? state.sceneObjects.map((object) => ({ ...object })) : null,
     projectMode: state.projectMode
   };
 }
 
 function restoreSnapshot(snapshot) {
-  const normalized = snapshot.drawing ? snapshot : { drawing: snapshot, sceneObjects: state.sceneObjects, projectMode: state.projectMode };
-  drawingCtx.putImageData(normalized.drawing, 0, 0);
+  const normalized = snapshot && Object.prototype.hasOwnProperty.call(snapshot, "drawing")
+    ? snapshot
+    : { drawing: snapshot, sceneObjects: state.sceneObjects, projectMode: state.projectMode };
+  if (normalized.drawing) drawingCtx.putImageData(normalized.drawing, 0, 0);
   if (state.projectMode === "forest" && normalized.sceneObjects) {
     state.sceneObjects = normalized.sceneObjects.map((object) => ({ ...object }));
   }
@@ -1330,27 +1334,28 @@ async function loadArtwork(id) {
   const loadToken = ++artworkLoadToken;
   const art = await dbGet(ART_STORE, id);
   if (!art || loadToken !== artworkLoadToken) return;
-  state.pageId = art.pageId;
-  state.projectMode = art.projectMode || "coloring";
-  activateWorkspace(state.projectMode);
-  const targetLayer = drawingLayer;
-  const targetContext = drawingCtx;
-  clearDrawing();
-  if (state.projectMode === "forest") {
-    state.sceneObjects = (art.sceneObjects || []).map((object) => ({ ...object }));
-    renderScene();
-  }
-  else loadTemplate(state.pageId);
+  const artMode = art.projectMode || "coloring";
   const image = new Image();
   image.onload = () => {
-    if (loadToken !== artworkLoadToken || drawingLayer !== targetLayer) return;
-    targetContext.drawImage(image, 0, 0, targetLayer.width, targetLayer.height);
+    if (loadToken !== artworkLoadToken) return;
+    state.pageId = art.pageId;
+    state.projectMode = artMode;
+    activateWorkspace(artMode);
+    clearDrawing();
+    if (artMode === "forest") {
+      state.sceneObjects = (art.sceneObjects || []).map((object) => ({ ...object }));
+      renderScene();
+    } else loadTemplate(state.pageId);
+    drawingCtx.drawImage(image, 0, 0, activeWidth(), activeHeight());
     pushUndo();
     draw();
     autosave();
     updateSelectedControls();
     setView(state.projectMode === "forest" ? "forest" : "studio");
     showToast("Artwork opened");
+  };
+  image.onerror = () => {
+    if (loadToken === artworkLoadToken) showToast("Could not open that artwork");
   };
   image.src = art.drawing;
 }
