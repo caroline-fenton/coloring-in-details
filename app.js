@@ -86,7 +86,7 @@ const pageAliases = {
 
 let state = {
   pageId: pages[0].id,
-  brush: "marker",
+  brush: "fill",
   palette: palettes[0].id,
   color: palettes[0].colors[0],
   size: 18,
