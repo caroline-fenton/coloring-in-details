@@ -184,6 +184,7 @@ async function init() {
   renderControls();
   bindEvents();
   await restoreAutosave();
+  renderObjectGrid();
   activateWorkspace(state.projectMode);
   renderColors();
   updateSelectedControls();
@@ -1417,7 +1418,7 @@ async function loadArtwork(id) {
     clearDrawing();
     if (artMode === "forest") {
       state.sceneObjects = (art.sceneObjects || []).map((object) => ({ ...object }));
-      state.backgroundTheme = art.backgroundTheme || state.backgroundTheme;
+      state.backgroundTheme = art.backgroundTheme || "original-forest";
       renderScene();
     } else loadTemplate(state.pageId);
     drawingCtx.drawImage(image, 0, 0, activeWidth(), activeHeight());
@@ -1495,7 +1496,7 @@ async function restoreAutosave() {
       projectMode: saved.projectMode || state.projectMode,
       forestMode: saved.forestMode || state.forestMode,
       stickerPack: saved.stickerPack || state.stickerPack,
-      backgroundTheme: saved.backgroundTheme || state.backgroundTheme,
+      backgroundTheme: saved.backgroundTheme || "original-forest",
       sceneObjects: Array.isArray(saved.sceneObjects) ? saved.sceneObjects : []
     });
     if (!saved.forestCanvasVersion && state.sceneObjects.length) {

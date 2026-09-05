@@ -64,6 +64,8 @@ const checks = [
   [js.includes("Mythical Creatures") && js.includes("Pink Dragon") && js.includes("Aurora Phoenix"), "Mythical Creatures sticker pack exists"],
   [html.includes('id="stickerPackTabs"') && html.includes('id="backgroundTabs"'), "Sticker pack and background selectors exist"],
   [js.includes("Original Forest") && js.includes("enchanted-background-landscape.png"), "Original Forest background remains available"],
+  [js.includes('art.backgroundTheme || "original-forest"') && js.includes('saved.backgroundTheme || "original-forest"'), "Legacy Forest saves migrate to Original Forest"],
+  [/await restoreAutosave\(\);\s*renderObjectGrid\(\);/.test(js), "Restored sticker pack rebuilds its object grid"],
   [js.includes("startSceneGesture") && js.includes("continueSceneGesture"), "Forest objects support touch movement and resizing"],
   [js.includes("deleteSelectedObject") && js.includes("duplicateSelectedObject"), "Forest object actions exist"],
   [js.includes("resetForest") && html.includes('data-action="resetForest"'), "Forest can be reset in one action"],
