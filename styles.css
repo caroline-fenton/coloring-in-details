@@ -329,7 +329,7 @@ main {
 .object-icon {
   width: 62px;
   height: 62px;
-  background-image: url("assets/forest/forest-sprites.png");
+  background-image: url("assets/forest/forest-sprites-clean.png");
   background-position: var(--sprite-x) var(--sprite-y);
   background-size: 400% 200%;
   background-repeat: no-repeat;

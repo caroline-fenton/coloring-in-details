@@ -62,7 +62,7 @@ const forestObjects = [
 ];
 const forestSprite = new Image();
 forestSprite.addEventListener("load", () => { renderScene(); draw(); });
-forestSprite.src = "assets/forest/forest-sprites.png";
+forestSprite.src = "assets/forest/forest-sprites-clean.png";
 const forestBackground = new Image();
 forestBackground.addEventListener("load", () => { renderScene(); draw(); });
 forestBackground.src = "assets/forest/enchanted-background-landscape.png";

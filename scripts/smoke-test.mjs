@@ -16,7 +16,7 @@ const requiredFiles = [
   "assets/coloring-pages/animal-magic-kitten.png",
   "assets/coloring-pages/animal-fox-tea.png",
   "assets/coloring-pages/animal-bunny-artist.png",
-  "assets/forest/forest-sprites.png",
+  "assets/forest/forest-sprites-clean.png",
   "assets/forest/enchanted-background.png",
   "assets/forest/enchanted-background-landscape.png",
 ];
