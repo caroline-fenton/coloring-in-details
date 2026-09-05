@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.svg" />
     <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=62" />
+    <link rel="stylesheet" href="styles.css?v=72" />
   </head>
   <body>
     <div class="app-shell">
@@ -63,7 +63,11 @@
             </div>
 
             <div class="tool-group forest-build-tools is-hidden" id="forestBuildTools">
-              <div class="tool-label">Add to forest</div>
+              <div class="tool-label">Background</div>
+              <div class="choice-tabs background-tabs" id="backgroundTabs" role="group" aria-label="Background theme"></div>
+              <div class="tool-label">Sticker pack</div>
+              <div class="choice-tabs" id="stickerPackTabs" role="group" aria-label="Sticker pack"></div>
+              <div class="tool-label">Add a sticker</div>
               <div class="object-grid" id="objectGrid"></div>
               <div class="slider-row">
                 <label for="objectSizeRange">Object size</label>
@@ -149,6 +153,6 @@
 
     <div class="celebration" id="celebration" aria-hidden="true"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=62" defer></script>
+    <script src="app.js?v=72" defer></script>
   </body>
 </html>

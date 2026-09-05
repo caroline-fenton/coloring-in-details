@@ -49,23 +49,40 @@ const templateCtx = templateLayer.getContext("2d", { willReadFrequently: true })
 const scratchCtx = scratchLayer.getContext("2d", { willReadFrequently: true });
 const forestScratchCtx = forestScratchLayer.getContext("2d", { willReadFrequently: true });
 const sceneCtx = sceneLayer.getContext("2d");
+const stickerPackTabs = document.querySelector("#stickerPackTabs");
+const backgroundTabs = document.querySelector("#backgroundTabs");
 
-const forestObjects = [
-  { id: "tree", label: "Star Fairy", column: 0, row: 0 },
-  { id: "pine", label: "Flower Fairy", column: 1, row: 0 },
-  { id: "bush", label: "Magic Mushrooms", column: 2, row: 0 },
-  { id: "rock", label: "Mushroom Cottage", column: 3, row: 0 },
-  { id: "flower", label: "Forest Frog", column: 0, row: 1 },
-  { id: "cloud", label: "Lily Frog", column: 1, row: 1 },
-  { id: "sun", label: "Moon Ferns", column: 2, row: 1 },
-  { id: "mushroom", label: "Glow Ferns", column: 3, row: 1 }
+const stickerPacks = [
+  { id: "forest-friends", label: "Forest Friends", sprite: "assets/forest/forest-sprites-clean.png" },
+  { id: "mythical-creatures", label: "Mythical Creatures", sprite: "assets/mythical/mythical-creatures-sprites-v3.png" }
 ];
-const forestSprite = new Image();
-forestSprite.addEventListener("load", () => { renderScene(); draw(); });
-forestSprite.src = "assets/forest/forest-sprites-clean.png";
-const forestBackground = new Image();
-forestBackground.addEventListener("load", () => { renderScene(); draw(); });
-forestBackground.src = "assets/forest/enchanted-background-landscape.png";
+const forestObjects = [
+  ["tree", "Star Fairy", 0, 0, "forest-friends", "assets/forest/stickers-v2/star-fairy.png"], ["pine", "Flower Fairy", 1, 0, "forest-friends", "assets/forest/stickers-v2/flower-fairy.png"],
+  ["bush", "Magic Mushrooms", 2, 0, "forest-friends", "assets/forest/stickers-v2/magic-mushrooms.png"], ["rock", "Mushroom Cottage", 3, 0, "forest-friends", "assets/forest/stickers-v2/mushroom-cottage.png"],
+  ["flower", "Forest Frog", 0, 1, "forest-friends", "assets/forest/stickers-v2/forest-frog.png"], ["cloud", "Lily Frog", 1, 1, "forest-friends", "assets/forest/stickers-v2/lily-frog.png"],
+  ["sun", "Moon Ferns", 2, 1, "forest-friends", "assets/forest/stickers-v2/moon-ferns.png"], ["mushroom", "Glow Ferns", 3, 1, "forest-friends", "assets/forest/stickers-v2/glow-ferns.png"],
+  ["pink-dragon", "Pink Dragon", 0, 0, "mythical-creatures"], ["rainbow-creature", "Rainbow Creature", 1, 0, "mythical-creatures"],
+  ["moon-unicorn", "Moon Unicorn", 2, 0, "mythical-creatures", "assets/mythical/moon-unicorn-v2.png"], ["aurora-phoenix", "Aurora Phoenix", 3, 0, "mythical-creatures", "assets/mythical/aurora-phoenix.png"],
+  ["jewel-dragon", "Jewel Dragon", 0, 1, "mythical-creatures"], ["frost-dragon", "Frost Dragon", 1, 1, "mythical-creatures"],
+  ["tiny-fairy", "Tiny Fairy", 2, 1, "mythical-creatures", "assets/mythical/tiny-fairy-v2.png"], ["mushroom-sprite", "Mushroom Sprite", 3, 1, "mythical-creatures"]
+].map(([id, label, column, row, pack, src]) => ({ id, label, column, row, pack, src }));
+const spriteImages = Object.fromEntries(stickerPacks.map((pack) => {
+  const image = new Image();
+  image.addEventListener("load", () => { renderScene(); draw(); });
+  image.src = pack.sprite;
+  return [pack.id, image];
+}));
+const objectImages = Object.fromEntries(forestObjects.filter((object) => object.src).map((object) => {
+  const image = new Image(); image.addEventListener("load", () => { renderScene(); draw(); }); image.src = object.src; return [object.id, image];
+}));
+const backgroundThemes = [
+  ["original-forest", "Original Forest", "assets/forest/enchanted-background-landscape.png"],
+  ["moonlight", "Moonlight"], ["enchanted", "Enchanted"], ["fairy-glow", "Fairy Glow"],
+  ["mushroom-magic", "Mushroom Magic"], ["crystal-dream", "Crystal Dream"]
+].map(([id, label, src]) => ({ id, label, src: src || `assets/mythical/background-${id}.png` }));
+const backgroundImages = Object.fromEntries(backgroundThemes.map((theme) => {
+  const image = new Image(); image.addEventListener("load", () => { renderScene(); draw(); }); image.src = theme.src; return [theme.id, image];
+}));
 
 const brushes = [
   { id: "marker", label: "Marker", icon: "✦", composite: "source-over", alpha: 0.88 },
@@ -130,6 +147,8 @@ let state = {
   dirty: false,
   projectMode: "coloring",
   forestMode: "build",
+  stickerPack: "mythical-creatures",
+  backgroundTheme: "enchanted",
   sceneObjects: [],
   selectedObjectId: null,
   sceneGesture: null,
@@ -194,12 +213,9 @@ function renderControls() {
       <span class="brush-label" aria-hidden="true">${brush.label}</span>
     </button>
   `).join("");
-  objectGrid.innerHTML = forestObjects.map((object) => `
-    <button class="object-button" type="button" data-object="${object.id}" aria-label="Add ${object.label}">
-      <span class="object-icon" aria-hidden="true" style="--sprite-x:${object.column * 33.333}%;--sprite-y:${object.row * 100}%"></span>
-      <small>${object.label}</small>
-    </button>
-  `).join("");
+  stickerPackTabs.innerHTML = stickerPacks.map((pack) => `<button class="choice-button" type="button" data-sticker-pack="${pack.id}">${pack.label}</button>`).join("");
+  backgroundTabs.innerHTML = backgroundThemes.map((theme) => `<button class="choice-button" type="button" data-background-theme="${theme.id}">${theme.label}</button>`).join("");
+  renderObjectGrid();
   paletteTabs.innerHTML = palettes.map((palette) => `
     <button class="palette-button" type="button" data-palette="${palette.id}" aria-label="${palette.label}">
       <span class="palette-preview" aria-hidden="true" style="--palette-count:${palette.colors.length}">
@@ -210,6 +226,19 @@ function renderControls() {
   `).join("");
   renderColors();
   updateSelectedControls();
+}
+
+function renderObjectGrid() {
+  const pack = stickerPacks.find((item) => item.id === state.stickerPack) || stickerPacks[0];
+  objectGrid.style.setProperty("--object-sprite", `url("${pack.sprite}")`);
+  objectGrid.innerHTML = forestObjects.filter((object) => object.pack === pack.id).map((object) => `
+    <button class="object-button" type="button" data-object="${object.id}" aria-label="Add ${object.label}">
+      ${object.src
+        ? `<img class="object-icon object-image" src="${object.src}" alt="" aria-hidden="true" />`
+        : `<span class="object-icon" aria-hidden="true" style="--sprite-x:${object.column * 33.333}%;--sprite-y:${object.row * 100}%"></span>`}
+      <small>${object.label}</small>
+    </button>
+  `).join("");
 }
 
 function renderColors() {
@@ -248,6 +277,8 @@ function updateForestControls() {
   document.querySelectorAll(".studio-only").forEach((element) => element.classList.toggle("is-hidden", inForest));
   document.querySelectorAll(".draw-tools").forEach((element) => element.classList.toggle("is-hidden", building));
   document.querySelectorAll("[data-forest-mode]").forEach((button) => button.classList.toggle("is-active", button.dataset.forestMode === state.forestMode));
+  document.querySelectorAll("[data-sticker-pack]").forEach((button) => button.classList.toggle("is-active", button.dataset.stickerPack === state.stickerPack));
+  document.querySelectorAll("[data-background-theme]").forEach((button) => button.classList.toggle("is-active", button.dataset.backgroundTheme === state.backgroundTheme));
   document.querySelector("#forestHint").textContent = building
     ? "Tap an object, then drag it into your scene."
     : "Draw, color, and add stickers over your finished forest.";
@@ -321,6 +352,14 @@ function emitRangeSparkles(progress, color) {
 }
 
 function bindEvents() {
+  stickerPackTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-sticker-pack]"); if (!button) return;
+    state.stickerPack = button.dataset.stickerPack; state.selectedObjectId = null; renderObjectGrid(); updateForestControls(); autosave();
+  });
+  backgroundTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-background-theme]"); if (!button || button.dataset.backgroundTheme === state.backgroundTheme) return;
+    pushUndo(); state.backgroundTheme = button.dataset.backgroundTheme; state.dirty = true; redoStack.length = 0; renderScene(); draw(); updateForestControls(); autosave();
+  });
   objectGrid.addEventListener("click", (event) => {
     const button = event.target.closest("[data-object]");
     if (button) addSceneObject(button.dataset.object);
@@ -446,7 +485,24 @@ function loadTemplate(pageId) {
     else buildLineArtTemplate(image);
     draw();
   };
+  image.onerror = () => showToast("Could not load that coloring page");
   image.src = page.src;
+}
+
+function readTemplatePixels(image, scale, x, y, width, height) {
+  scratchCtx.fillStyle = "#fffdf7";
+  scratchCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  scratchCtx.drawImage(image, x, y, width, height);
+  try {
+    return scratchCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  } catch {
+    // Browsers block pixel reads when the app is opened directly from file://.
+    // Keep local previews useful by showing the page without line extraction.
+    templateCtx.fillStyle = "#fffdf7";
+    templateCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    templateCtx.drawImage(image, x, y, width, height);
+    return null;
+  }
 }
 
 function getPage(pageId) {
@@ -462,10 +518,8 @@ function buildLineArtTemplate(image) {
   const height = image.naturalHeight * scale;
   const x = (CANVAS_SIZE - width) / 2;
   const y = (CANVAS_SIZE - height) / 2;
-  scratchCtx.fillStyle = "#fffdf7";
-  scratchCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  scratchCtx.drawImage(image, x, y, width, height);
-  const imageData = scratchCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  const imageData = readTemplatePixels(image, scale, x, y, width, height);
+  if (!imageData) return;
   const data = imageData.data;
   const pixelCount = CANVAS_SIZE * CANVAS_SIZE;
   const luminance = new Uint8Array(pixelCount);
@@ -516,10 +570,8 @@ function buildRasterLineTemplate(image) {
   const height = image.naturalHeight * scale;
   const x = (CANVAS_SIZE - width) / 2;
   const y = (CANVAS_SIZE - height) / 2;
-  scratchCtx.fillStyle = "#fffdf7";
-  scratchCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  scratchCtx.drawImage(image, x, y, width, height);
-  const imageData = scratchCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  const imageData = readTemplatePixels(image, scale, x, y, width, height);
+  if (!imageData) return;
   const data = imageData.data;
   for (let index = 0; index < data.length; index += 4) {
     const r = data[index];
@@ -788,8 +840,9 @@ function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 function renderScene() {
   sceneCtx.clearRect(0, 0, FOREST_WIDTH, FOREST_HEIGHT);
   if (state.projectMode !== "forest") return;
-  if (forestBackground.complete && forestBackground.naturalWidth) {
-    sceneCtx.drawImage(forestBackground, 0, 0, FOREST_WIDTH, FOREST_HEIGHT);
+  const background = backgroundImages[state.backgroundTheme] || backgroundImages.enchanted;
+  if (background.complete && background.naturalWidth) {
+    sceneCtx.drawImage(background, 0, 0, FOREST_WIDTH, FOREST_HEIGHT);
     const vignette = sceneCtx.createRadialGradient(800, 720, 260, 800, 720, 1120);
     vignette.addColorStop(0, "rgba(48,36,58,0)");
     vignette.addColorStop(1, "rgba(48,36,58,.22)");
@@ -832,12 +885,19 @@ function drawSceneObject(object) {
   const c = sceneCtx;
   const sprite = forestObjects.find((item) => item.id === object.type);
   c.save(); c.translate(object.x, object.y); c.rotate(object.rotation); c.lineJoin = "round"; c.lineCap = "round"; c.lineWidth = Math.max(8, s * .035); c.strokeStyle = "#55445f";
-  if (sprite && forestSprite.complete && forestSprite.naturalWidth) {
-    const sourceWidth = forestSprite.naturalWidth / 4;
-    const sourceCellHeight = forestSprite.naturalHeight / 2;
+  const spriteImage = sprite ? spriteImages[sprite.pack] : null;
+  const objectImage = objectImages[object.type];
+  if (objectImage?.complete && objectImage.naturalWidth) {
+    c.drawImage(objectImage, -s / 2, -s * .59, s, s * 1.18);
+    c.restore();
+    return;
+  }
+  if (sprite && spriteImage?.complete && spriteImage.naturalWidth) {
+    const sourceWidth = spriteImage.naturalWidth / 4;
+    const sourceCellHeight = spriteImage.naturalHeight / 2;
     const sourceY = sprite.row === 0 ? 0 : sourceCellHeight;
-    const sourceHeight = sprite.row === 0 ? Math.min(forestSprite.naturalHeight, sourceCellHeight + 48) : sourceCellHeight;
-    c.drawImage(forestSprite, sprite.column * sourceWidth, sourceY, sourceWidth, sourceHeight, -s / 2, -s * .59, s, s * 1.18);
+    const sourceHeight = sourceCellHeight;
+    c.drawImage(spriteImage, sprite.column * sourceWidth, sourceY, sourceWidth, sourceHeight, -s / 2, -s * .59, s, s * 1.18);
     c.restore();
     return;
   }
@@ -1105,9 +1165,16 @@ function floodFill(x, y, color) {
   else fillScratchCtx.drawImage(templateLayer, 0, 0);
   fillScratchCtx.drawImage(drawingLayer, 0, 0);
   if (state.projectMode === "coloring") fillScratchCtx.drawImage(templateLayer, 0, 0);
-  const imageData = fillScratchCtx.getImageData(0, 0, width, height);
+  let imageData;
+  let templateData = null;
+  try {
+    imageData = fillScratchCtx.getImageData(0, 0, width, height);
+    if (state.projectMode === "coloring") templateData = templateCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data;
+  } catch {
+    showToast("Fill needs the local preview server (npm start)");
+    return;
+  }
   const data = imageData.data;
-  const templateData = state.projectMode === "coloring" ? templateCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data : null;
   const isTemplateLine = (index) => {
     if (!templateData) return false;
     const px = index % width;
@@ -1135,7 +1202,10 @@ function floodFill(x, y, color) {
   queue[tail] = startIndex;
   mask[startIndex] = 2;
   tail += 1;
-  const tolerance = 42;
+  // Detailed painted scenes contain many small lighting variations. A more
+  // generous Forest tolerance produces a visible, useful region instead of a
+  // handful of nearly identical pixels; Studio line art stays precise.
+  const tolerance = state.projectMode === "forest" ? 86 : 42;
   while (head < tail) {
     const index = queue[head];
     head += 1;
@@ -1206,6 +1276,7 @@ function captureSnapshot({ includeDrawing = !(state.projectMode === "forest" && 
   return {
     drawing: includeDrawing ? drawingCtx.getImageData(0, 0, activeWidth(), activeHeight()) : null,
     sceneObjects: state.projectMode === "forest" ? state.sceneObjects.map((object) => ({ ...object })) : null,
+    backgroundTheme: state.projectMode === "forest" ? state.backgroundTheme : null,
     projectMode: state.projectMode
   };
 }
@@ -1217,6 +1288,7 @@ function restoreSnapshot(snapshot) {
   if (normalized.drawing) drawingCtx.putImageData(normalized.drawing, 0, 0);
   if (state.projectMode === "forest" && normalized.sceneObjects) {
     state.sceneObjects = normalized.sceneObjects.map((object) => ({ ...object }));
+    if (normalized.backgroundTheme) state.backgroundTheme = normalized.backgroundTheme;
   }
   state.selectedObjectId = null;
   renderScene();
@@ -1285,6 +1357,7 @@ async function saveArtwork() {
     pageId: state.pageId,
     projectMode: state.projectMode,
     sceneObjects: state.projectMode === "forest" ? state.sceneObjects : [],
+    backgroundTheme: state.projectMode === "forest" ? state.backgroundTheme : null,
     drawing: drawingLayer.toDataURL("image/png"),
     preview: compositeDataUrl(0.32),
     createdAt: new Date().toISOString()
@@ -1344,6 +1417,7 @@ async function loadArtwork(id) {
     clearDrawing();
     if (artMode === "forest") {
       state.sceneObjects = (art.sceneObjects || []).map((object) => ({ ...object }));
+      state.backgroundTheme = art.backgroundTheme || state.backgroundTheme;
       renderScene();
     } else loadTemplate(state.pageId);
     drawingCtx.drawImage(image, 0, 0, activeWidth(), activeHeight());
@@ -1384,6 +1458,8 @@ function autosave() {
     size: state.size,
     projectMode: state.projectMode,
     forestMode: state.forestMode,
+    stickerPack: state.stickerPack,
+    backgroundTheme: state.backgroundTheme,
     sceneObjects: state.sceneObjects,
     forestCanvasVersion: 2,
     studioDrawing: studioDrawingLayer.toDataURL("image/png"),
@@ -1418,6 +1494,8 @@ async function restoreAutosave() {
       size: saved.size || state.size,
       projectMode: saved.projectMode || state.projectMode,
       forestMode: saved.forestMode || state.forestMode,
+      stickerPack: saved.stickerPack || state.stickerPack,
+      backgroundTheme: saved.backgroundTheme || state.backgroundTheme,
       sceneObjects: Array.isArray(saved.sceneObjects) ? saved.sceneObjects : []
     });
     if (!saved.forestCanvasVersion && state.sceneObjects.length) {

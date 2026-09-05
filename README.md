@@ -10,6 +10,8 @@ Switch to **Color** to draw over the finished scene with the same markers, crayo
 
 Forest Mode uses an original, project-local 16:10 enchanted woodland background and coordinated illustrated sprite sheet. Its wide canvas provides substantially more room for scene building while Studio coloring pages remain square. Deep plum shadows, cyan rim light, saturated teal foliage, and orchid glow give the scene a bioluminescent nighttime atmosphere while preserving the app's rounded storybook character. Both assets are cached with the rest of the PWA for offline use.
 
+The **Mythical Creatures** sticker pack adds eight original luminous characters: two crystal dragons, a rainbow winged creature, moon unicorn, aurora phoenix, frost dragon, tiny fairy, and mushroom sprite. Scene builders can pair either sticker pack with the Original Forest or the Moonlight, Enchanted, Fairy Glow, Mushroom Magic, and Crystal Dream backgrounds. Theme choices autosave and are preserved in gallery artwork.
+
 ## Run Locally
 
 ```bash
