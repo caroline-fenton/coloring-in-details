@@ -16,7 +16,7 @@ Forest Mode uses an original, project-local 16:10 enchanted woodland background 
 npm start
 ```
 
-Then open `http://localhost:4173`.
+Then open `http://localhost:4183`. Color Corner uses its own local port so cached files from other projects cannot overlap during testing.
 
 ## Test
 
