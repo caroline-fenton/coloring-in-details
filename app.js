@@ -1359,6 +1359,7 @@ async function saveArtwork() {
     projectMode: state.projectMode,
     sceneObjects: state.projectMode === "forest" ? state.sceneObjects : [],
     backgroundTheme: state.projectMode === "forest" ? state.backgroundTheme : null,
+    stickerPack: state.projectMode === "forest" ? state.stickerPack : null,
     drawing: drawingLayer.toDataURL("image/png"),
     preview: compositeDataUrl(0.32),
     createdAt: new Date().toISOString()
@@ -1419,6 +1420,8 @@ async function loadArtwork(id) {
     if (artMode === "forest") {
       state.sceneObjects = (art.sceneObjects || []).map((object) => ({ ...object }));
       state.backgroundTheme = art.backgroundTheme || "original-forest";
+      state.stickerPack = art.stickerPack || "forest-friends";
+      renderObjectGrid();
       renderScene();
     } else loadTemplate(state.pageId);
     drawingCtx.drawImage(image, 0, 0, activeWidth(), activeHeight());
