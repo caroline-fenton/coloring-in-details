@@ -1,4 +1,6 @@
 const CANVAS_SIZE = 1600;
+const FOREST_WIDTH = 1920;
+const FOREST_HEIGHT = 1200;
 const DB_NAME = "color-studio-db";
 const DB_VERSION = 1;
 const ART_STORE = "artworks";
@@ -20,17 +22,50 @@ const emptyGallery = document.querySelector("#emptyGallery");
 const toast = document.querySelector("#toast");
 const dialog = document.querySelector("#confirmDialog");
 const celebration = document.querySelector("#celebration");
+const forestModePanel = document.querySelector("#forestModePanel");
+const forestBuildTools = document.querySelector("#forestBuildTools");
+const objectGrid = document.querySelector("#objectGrid");
+const objectSizeRange = document.querySelector("#objectSizeRange");
+const objectSizeOutput = document.querySelector("#objectSizeOutput");
+const canvasTip = document.querySelector("#canvasTip");
 
-const drawingLayer = document.createElement("canvas");
+const studioDrawingLayer = document.createElement("canvas");
+const forestDrawingLayer = document.createElement("canvas");
 const templateLayer = document.createElement("canvas");
 const scratchLayer = document.createElement("canvas");
-for (const layer of [drawingLayer, templateLayer, scratchLayer]) {
+const forestScratchLayer = document.createElement("canvas");
+const sceneLayer = document.createElement("canvas");
+for (const layer of [studioDrawingLayer, templateLayer, scratchLayer]) {
   layer.width = CANVAS_SIZE;
   layer.height = CANVAS_SIZE;
 }
-const drawingCtx = drawingLayer.getContext("2d", { willReadFrequently: true });
+for (const layer of [forestDrawingLayer, forestScratchLayer, sceneLayer]) {
+  layer.width = FOREST_WIDTH;
+  layer.height = FOREST_HEIGHT;
+}
+let drawingLayer = studioDrawingLayer;
+let drawingCtx = drawingLayer.getContext("2d", { willReadFrequently: true });
 const templateCtx = templateLayer.getContext("2d", { willReadFrequently: true });
 const scratchCtx = scratchLayer.getContext("2d", { willReadFrequently: true });
+const forestScratchCtx = forestScratchLayer.getContext("2d", { willReadFrequently: true });
+const sceneCtx = sceneLayer.getContext("2d");
+
+const forestObjects = [
+  { id: "tree", label: "Star Fairy", column: 0, row: 0 },
+  { id: "pine", label: "Flower Fairy", column: 1, row: 0 },
+  { id: "bush", label: "Magic Mushrooms", column: 2, row: 0 },
+  { id: "rock", label: "Mushroom Cottage", column: 3, row: 0 },
+  { id: "flower", label: "Forest Frog", column: 0, row: 1 },
+  { id: "cloud", label: "Lily Frog", column: 1, row: 1 },
+  { id: "sun", label: "Moon Ferns", column: 2, row: 1 },
+  { id: "mushroom", label: "Glow Ferns", column: 3, row: 1 }
+];
+const forestSprite = new Image();
+forestSprite.addEventListener("load", () => { renderScene(); draw(); });
+forestSprite.src = "assets/forest/forest-sprites-clean.png";
+const forestBackground = new Image();
+forestBackground.addEventListener("load", () => { renderScene(); draw(); });
+forestBackground.src = "assets/forest/enchanted-background-landscape.png";
 
 const brushes = [
   { id: "marker", label: "Marker", icon: "✦", composite: "source-over", alpha: 0.88 },
@@ -92,22 +127,52 @@ let state = {
   size: 18,
   drawing: false,
   lastPoint: null,
-  dirty: false
+  dirty: false,
+  projectMode: "coloring",
+  forestMode: "build",
+  sceneObjects: [],
+  selectedObjectId: null,
+  sceneGesture: null,
+  objectSizeChanging: false
 };
 
-let undoStack = [];
-let redoStack = [];
+const histories = {
+  coloring: { undo: [], redo: [] },
+  forest: { undo: [], redo: [] }
+};
+let undoStack = histories.coloring.undo;
+let redoStack = histories.coloring.redo;
 let toastTimer = null;
 let dbPromise = null;
 let lastRangeSparkle = 0;
+let artworkLoadToken = 0;
+
+function activateWorkspace(mode) {
+  document.body.classList.toggle("is-forest-workspace", mode === "forest");
+  drawingLayer = mode === "forest" ? forestDrawingLayer : studioDrawingLayer;
+  drawingCtx = drawingLayer.getContext("2d", { willReadFrequently: true });
+  canvas.width = drawingLayer.width;
+  canvas.height = drawingLayer.height;
+  undoStack = histories[mode].undo;
+  redoStack = histories[mode].redo;
+  updateUndoRedo();
+}
+
+function activeWidth() { return drawingLayer.width; }
+function activeHeight() { return drawingLayer.height; }
 
 async function init() {
   renderControls();
   bindEvents();
   await restoreAutosave();
+  activateWorkspace(state.projectMode);
   renderColors();
   updateSelectedControls();
-  loadTemplate(state.pageId);
+  if (state.projectMode === "forest") {
+    document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.view === "forest"));
+  }
+  if (state.projectMode === "forest") renderScene();
+  else loadTemplate(state.pageId);
   pushUndo();
   draw();
   await renderGallery();
@@ -127,6 +192,12 @@ function renderControls() {
     <button class="brush-button" type="button" data-brush="${brush.id}" title="${brush.label}" aria-label="${brush.label}">
       <span class="brush-icon" aria-hidden="true">${brush.icon}</span>
       <span class="brush-label" aria-hidden="true">${brush.label}</span>
+    </button>
+  `).join("");
+  objectGrid.innerHTML = forestObjects.map((object) => `
+    <button class="object-button" type="button" data-object="${object.id}" aria-label="Add ${object.label}">
+      <span class="object-icon" aria-hidden="true" style="--sprite-x:${object.column * 33.333}%;--sprite-y:${object.row * 100}%"></span>
+      <small>${object.label}</small>
     </button>
   `).join("");
   paletteTabs.innerHTML = palettes.map((palette) => `
@@ -166,6 +237,29 @@ function updateSelectedControls() {
   sizeRange.value = String(state.size);
   updateSizeRange();
   updateSizePreview();
+  updateForestControls();
+}
+
+function updateForestControls() {
+  const inForest = state.projectMode === "forest";
+  const building = inForest && state.forestMode === "build";
+  forestModePanel.classList.toggle("is-hidden", !inForest);
+  forestBuildTools.classList.toggle("is-hidden", !building);
+  document.querySelectorAll(".studio-only").forEach((element) => element.classList.toggle("is-hidden", inForest));
+  document.querySelectorAll(".draw-tools").forEach((element) => element.classList.toggle("is-hidden", building));
+  document.querySelectorAll("[data-forest-mode]").forEach((button) => button.classList.toggle("is-active", button.dataset.forestMode === state.forestMode));
+  document.querySelector("#forestHint").textContent = building
+    ? "Tap an object, then drag it into your scene."
+    : "Draw, color, and add stickers over your finished forest.";
+  const selected = selectedSceneObject();
+  document.querySelectorAll("[data-object]").forEach((button) => button.classList.toggle("is-active", button.dataset.object === selected?.type));
+  document.querySelectorAll("[data-action='deleteObject'], [data-action='duplicateObject']").forEach((button) => { button.disabled = !selected; });
+  objectSizeRange.disabled = !selected;
+  if (selected) objectSizeRange.value = String(Math.round(selected.scale * 100));
+  objectSizeOutput.value = selected ? `${Math.round(selected.scale * 100)}%` : "Pick one";
+  updateObjectSizeRange();
+  canvasTip.classList.toggle("is-hidden", !building || !selected);
+  canvas.setAttribute("aria-label", building ? "Forest scene builder. Drag objects to move and use the corner handle to resize." : "Artwork surface");
 }
 
 function updateSizePreview() {
@@ -184,6 +278,14 @@ function updateSizeRange({ sparkle = false } = {}) {
   sizeRange.style.setProperty("--range-progress", `${(progress * 100).toFixed(2)}%`);
   sizeRange.style.setProperty("--slider-sunset", sunsetColor);
   if (sparkle) emitRangeSparkles(progress, sunsetColor);
+}
+
+function updateObjectSizeRange() {
+  const min = Number(objectSizeRange.min);
+  const max = Number(objectSizeRange.max);
+  const progress = (Number(objectSizeRange.value) - min) / (max - min);
+  objectSizeRange.style.setProperty("--range-progress", `${(progress * 100).toFixed(2)}%`);
+  objectSizeRange.style.setProperty("--slider-sunset", interpolateSunsetColor(progress));
 }
 
 function interpolateSunsetColor(progress) {
@@ -219,6 +321,22 @@ function emitRangeSparkles(progress, color) {
 }
 
 function bindEvents() {
+  objectGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-object]");
+    if (button) addSceneObject(button.dataset.object);
+  });
+  document.querySelectorAll("[data-forest-mode]").forEach((button) => button.addEventListener("click", () => setForestMode(button.dataset.forestMode)));
+  document.querySelector("[data-action='deleteObject']").addEventListener("click", deleteSelectedObject);
+  document.querySelector("[data-action='duplicateObject']").addEventListener("click", duplicateSelectedObject);
+  document.querySelector("[data-action='resetForest']").addEventListener("click", resetForest);
+  objectSizeRange.addEventListener("input", () => {
+    beginObjectSizeChange();
+    resizeSelectedObject();
+  });
+  objectSizeRange.addEventListener("change", endObjectSizeChange);
+  objectSizeRange.addEventListener("pointerup", endObjectSizeChange);
+  objectSizeRange.addEventListener("pointercancel", endObjectSizeChange);
+  objectSizeRange.addEventListener("blur", endObjectSizeChange);
   pictureStrip.addEventListener("click", (event) => {
     const button = event.target.closest("[data-page]");
     if (!button || button.dataset.page === state.pageId) return;
@@ -271,7 +389,8 @@ function bindEvents() {
   document.querySelector("[data-action='redo']").addEventListener("click", redo);
   document.querySelector("[data-action='save']").addEventListener("click", saveArtwork);
   document.querySelector("[data-action='new']").addEventListener("click", () => {
-    confirmAction("Start a new picture?", "Your current drawing will be cleared from the studio.", () => {
+    const isForest = state.projectMode === "forest";
+    confirmAction(isForest ? "Start a new forest?" : "Start a new picture?", isForest ? "Your current forest scene and coloring will be cleared." : "Your current drawing will be cleared from the studio.", () => {
       clearDrawing();
       pushUndo();
       draw();
@@ -295,8 +414,25 @@ function bindEvents() {
 }
 
 function setView(view) {
+  artworkLoadToken += 1;
+  const studioView = view === "studio" || view === "forest";
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.view === view));
-  document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("is-hidden", panel.dataset.panel !== view));
+  document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("is-hidden", panel.dataset.panel !== (studioView ? "studio" : view)));
+  if (studioView) {
+    const nextMode = view === "forest" ? "forest" : "coloring";
+    if (nextMode !== state.projectMode) {
+      state.projectMode = nextMode;
+      activateWorkspace(nextMode);
+      state.selectedObjectId = null;
+      templateCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      if (nextMode === "coloring") loadTemplate(state.pageId);
+      renderScene();
+      if (!undoStack.length) pushUndo();
+      draw();
+      updateSelectedControls();
+      autosave();
+    }
+  }
   if (view === "gallery") renderGallery();
 }
 
@@ -305,6 +441,7 @@ function loadTemplate(pageId) {
   state.pageId = page.id;
   const image = new Image();
   image.onload = () => {
+    if (state.projectMode !== "coloring" || state.pageId !== page.id) return;
     if (page.type === "raster-line") buildRasterLineTemplate(image);
     else buildLineArtTemplate(image);
     draw();
@@ -403,18 +540,30 @@ function buildRasterLineTemplate(image) {
 }
 
 function draw() {
-  ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  const width = activeWidth();
+  const height = activeHeight();
+  ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#fffdf7";
-  ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  ctx.drawImage(templateLayer, 0, 0);
-  ctx.drawImage(drawingLayer, 0, 0);
-  ctx.drawImage(templateLayer, 0, 0);
+  ctx.fillRect(0, 0, width, height);
+  if (state.projectMode === "forest") {
+    ctx.drawImage(sceneLayer, 0, 0);
+    ctx.drawImage(drawingLayer, 0, 0);
+  } else {
+    ctx.drawImage(templateLayer, 0, 0);
+    ctx.drawImage(drawingLayer, 0, 0);
+    ctx.drawImage(templateLayer, 0, 0);
+  }
+  if (state.projectMode === "forest" && state.forestMode === "build") drawSelection();
 }
 
 function startDrawing(event) {
   event.preventDefault();
   canvas.setPointerCapture(event.pointerId);
   const point = getCanvasPoint(event);
+  if (state.projectMode === "forest" && state.forestMode === "build") {
+    startSceneGesture(point);
+    return;
+  }
   state.drawing = true;
   state.lastPoint = point;
   if (state.brush === "fill") {
@@ -422,7 +571,7 @@ function startDrawing(event) {
     floodFill(point.x, point.y, state.color);
     state.drawing = false;
     state.dirty = true;
-    redoStack = [];
+    redoStack.length = 0;
     draw();
     autosave();
     updateUndoRedo();
@@ -434,6 +583,12 @@ function startDrawing(event) {
 }
 
 function continueDrawing(event) {
+  if (state.projectMode === "forest" && state.forestMode === "build") {
+    if (!state.sceneGesture) return;
+    event.preventDefault();
+    continueSceneGesture(getCanvasPoint(event));
+    return;
+  }
   if (!state.drawing || state.brush === "fill") return;
   event.preventDefault();
   const point = getCanvasPoint(event);
@@ -444,12 +599,277 @@ function continueDrawing(event) {
 }
 
 function stopDrawing() {
+  if (state.sceneGesture) {
+    const gesture = state.sceneGesture;
+    state.sceneGesture = null;
+    if (gesture.changed) commitSceneChange();
+    else {
+      draw();
+      updateForestControls();
+    }
+    return;
+  }
   if (!state.drawing) return;
   state.drawing = false;
   state.lastPoint = null;
-  redoStack = [];
+  redoStack.length = 0;
   autosave();
   updateUndoRedo();
+}
+
+function setForestMode(mode) {
+  state.forestMode = mode;
+  state.sceneGesture = null;
+  renderScene();
+  draw();
+  updateForestControls();
+  autosave();
+}
+
+function addSceneObject(type) {
+  pushUndo();
+  const count = state.sceneObjects.length;
+  const object = {
+    id: `${type}-${Date.now()}-${count}`,
+    type,
+    x: FOREST_WIDTH / 2 + ((count % 5) - 2) * 78,
+    y: type === "cloud" || type === "sun" ? 280 + (count % 3) * 46 : 760 + (count % 4) * 42,
+    scale: type === "flower" ? 0.75 : 1,
+    rotation: ((count % 5) - 2) * 0.035
+  };
+  state.sceneObjects.push(object);
+  state.selectedObjectId = object.id;
+  redoStack.length = 0;
+  state.dirty = true;
+  renderScene();
+  draw();
+  updateForestControls();
+  autosave();
+}
+
+function selectedSceneObject() {
+  return state.sceneObjects.find((object) => object.id === state.selectedObjectId) || null;
+}
+
+function sceneObjectBounds(object) {
+  const size = baseObjectSize(object.type) * object.scale;
+  return { left: object.x - size / 2, top: object.y - size / 2, right: object.x + size / 2, bottom: object.y + size / 2, size };
+}
+
+function baseObjectSize(type) {
+  return ({ tree: 330, pine: 340, bush: 350, rock: 360, flower: 300, cloud: 310, sun: 350, mushroom: 350 })[type] || 320;
+}
+
+function hitSceneObject(point) {
+  for (let index = state.sceneObjects.length - 1; index >= 0; index -= 1) {
+    const object = state.sceneObjects[index];
+    const bounds = sceneObjectBounds(object);
+    if (point.x >= bounds.left && point.x <= bounds.right && point.y >= bounds.top && point.y <= bounds.bottom) return object;
+  }
+  return null;
+}
+
+function startSceneGesture(point) {
+  const selected = selectedSceneObject();
+  if (selected) {
+    const bounds = sceneObjectBounds(selected);
+    if (Math.hypot(point.x - bounds.right, point.y - bounds.bottom) < 100) {
+      state.sceneGesture = { kind: "resize", start: point, startScale: selected.scale, objectId: selected.id, changed: false };
+      return;
+    }
+  }
+  const object = hitSceneObject(point);
+  state.selectedObjectId = object?.id || null;
+  if (object) {
+    state.sceneGesture = { kind: "move", start: point, startX: object.x, startY: object.y, objectId: object.id, changed: false };
+  }
+  draw();
+  updateForestControls();
+}
+
+function continueSceneGesture(point) {
+  const gesture = state.sceneGesture;
+  const object = state.sceneObjects.find((item) => item.id === gesture.objectId);
+  if (!object) return;
+  if (gesture.kind === "move") {
+    const nextX = clamp(gesture.startX + point.x - gesture.start.x, 70, FOREST_WIDTH - 70);
+    const nextY = clamp(gesture.startY + point.y - gesture.start.y, 70, FOREST_HEIGHT - 70);
+    if (!gesture.changed && Math.hypot(nextX - gesture.startX, nextY - gesture.startY) < 2) return;
+    if (!gesture.changed) pushUndo();
+    gesture.changed = true;
+    object.x = nextX;
+    object.y = nextY;
+  } else {
+    const startDistance = Math.max(40, Math.hypot(gesture.start.x - object.x, gesture.start.y - object.y));
+    const nextDistance = Math.hypot(point.x - object.x, point.y - object.y);
+    const nextScale = clamp(gesture.startScale * nextDistance / startDistance, 0.45, 1.9);
+    if (!gesture.changed && Math.abs(nextScale - gesture.startScale) < 0.005) return;
+    if (!gesture.changed) pushUndo();
+    gesture.changed = true;
+    object.scale = nextScale;
+  }
+  state.dirty = true;
+  renderScene();
+  draw();
+  updateForestControls();
+}
+
+function resizeSelectedObject() {
+  const object = selectedSceneObject();
+  if (!object) return;
+  object.scale = Number(objectSizeRange.value) / 100;
+  objectSizeOutput.value = `${objectSizeRange.value}%`;
+  updateObjectSizeRange();
+  state.dirty = true;
+  renderScene();
+  draw();
+}
+
+function beginObjectSizeChange() {
+  if (!selectedSceneObject() || state.objectSizeChanging) return;
+  pushUndo();
+  state.objectSizeChanging = true;
+}
+
+function endObjectSizeChange() {
+  if (!state.objectSizeChanging) return;
+  state.objectSizeChanging = false;
+  commitSceneChange();
+}
+
+function commitSceneChange() {
+  redoStack.length = 0;
+  renderScene();
+  draw();
+  updateUndoRedo();
+  updateForestControls();
+  autosave();
+}
+
+function deleteSelectedObject() {
+  if (!selectedSceneObject()) return;
+  pushUndo();
+  state.sceneObjects = state.sceneObjects.filter((object) => object.id !== state.selectedObjectId);
+  state.selectedObjectId = null;
+  state.dirty = true;
+  commitSceneChange();
+}
+
+function duplicateSelectedObject() {
+  const selected = selectedSceneObject();
+  if (!selected) return;
+  pushUndo();
+  const halfSize = baseObjectSize(selected.type) * selected.scale / 2;
+  const copy = {
+    ...selected,
+    id: `${selected.type}-${Date.now()}`,
+    x: clamp(selected.x + 90, halfSize, FOREST_WIDTH - halfSize),
+    y: clamp(selected.y + 70, halfSize, FOREST_HEIGHT - halfSize)
+  };
+  state.sceneObjects.push(copy);
+  state.selectedObjectId = copy.id;
+  state.dirty = true;
+  commitSceneChange();
+}
+
+function resetForest() {
+  confirmAction("Start over with a new forest?", "This clears every placed object and all coloring in your current forest.", () => {
+    clearDrawing();
+    pushUndo();
+    draw();
+    autosave();
+    updateSelectedControls();
+    showToast("Forest cleared");
+  });
+}
+
+function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+
+function renderScene() {
+  sceneCtx.clearRect(0, 0, FOREST_WIDTH, FOREST_HEIGHT);
+  if (state.projectMode !== "forest") return;
+  if (forestBackground.complete && forestBackground.naturalWidth) {
+    sceneCtx.drawImage(forestBackground, 0, 0, FOREST_WIDTH, FOREST_HEIGHT);
+    const vignette = sceneCtx.createRadialGradient(800, 720, 260, 800, 720, 1120);
+    vignette.addColorStop(0, "rgba(48,36,58,0)");
+    vignette.addColorStop(1, "rgba(48,36,58,.22)");
+    sceneCtx.fillStyle = vignette;
+    sceneCtx.fillRect(0, 0, FOREST_WIDTH, FOREST_HEIGHT);
+    state.sceneObjects.forEach(drawSceneObject);
+    return;
+  }
+  const sky = sceneCtx.createLinearGradient(0, 0, 0, FOREST_HEIGHT);
+  sky.addColorStop(0, "#eee6fb");
+  sky.addColorStop(0.42, "#e5f6f5");
+  sky.addColorStop(0.67, "#fff8e5");
+  sky.addColorStop(0.675, "#dceecb");
+  sky.addColorStop(1, "#acd59f");
+  sceneCtx.fillStyle = sky;
+  sceneCtx.fillRect(0, 0, FOREST_WIDTH, FOREST_HEIGHT);
+  const glow = sceneCtx.createRadialGradient(1240, 270, 30, 1240, 270, 500);
+  glow.addColorStop(0, "rgba(255,243,183,.72)");
+  glow.addColorStop(1, "rgba(255,243,183,0)");
+  sceneCtx.fillStyle = glow;
+  sceneCtx.fillRect(0, 0, FOREST_WIDTH, 700);
+  sceneCtx.fillStyle = "rgba(255,255,255,.30)";
+  sceneCtx.beginPath();
+  sceneCtx.moveTo(0, 1160); sceneCtx.quadraticCurveTo(380, 900, 820, 1110); sceneCtx.quadraticCurveTo(1220, 890, 1600, 1060); sceneCtx.lineTo(1600, 1600); sceneCtx.lineTo(0, 1600); sceneCtx.fill();
+  sceneCtx.fillStyle = "rgba(255,245,221,.42)";
+  sceneCtx.beginPath(); sceneCtx.moveTo(650,1600); sceneCtx.bezierCurveTo(690,1410,820,1280,920,1110); sceneCtx.bezierCurveTo(1010,1300,1090,1470,1150,1600); sceneCtx.closePath(); sceneCtx.fill();
+  sceneCtx.globalAlpha = .22;
+  for (let index = 0; index < 70; index += 1) {
+    const x = (index * 227) % FOREST_WIDTH;
+    const y = 1080 + ((index * 89) % 500);
+    sceneCtx.fillStyle = index % 3 === 0 ? "#fff6ae" : index % 3 === 1 ? "#f4a9ce" : "#ffffff";
+    sceneCtx.beginPath(); sceneCtx.arc(x, y, 3 + (index % 5), 0, Math.PI * 2); sceneCtx.fill();
+  }
+  sceneCtx.globalAlpha = 1;
+  state.sceneObjects.forEach(drawSceneObject);
+}
+
+function drawSceneObject(object) {
+  const s = baseObjectSize(object.type) * object.scale;
+  const c = sceneCtx;
+  const sprite = forestObjects.find((item) => item.id === object.type);
+  c.save(); c.translate(object.x, object.y); c.rotate(object.rotation); c.lineJoin = "round"; c.lineCap = "round"; c.lineWidth = Math.max(8, s * .035); c.strokeStyle = "#55445f";
+  if (sprite && forestSprite.complete && forestSprite.naturalWidth) {
+    const sourceWidth = forestSprite.naturalWidth / 4;
+    const sourceCellHeight = forestSprite.naturalHeight / 2;
+    const sourceY = sprite.row === 0 ? 0 : sourceCellHeight;
+    const sourceHeight = sprite.row === 0 ? Math.min(forestSprite.naturalHeight, sourceCellHeight + 48) : sourceCellHeight;
+    c.drawImage(forestSprite, sprite.column * sourceWidth, sourceY, sourceWidth, sourceHeight, -s / 2, -s * .59, s, s * 1.18);
+    c.restore();
+    return;
+  }
+  const fillStroke = (fill) => { c.fillStyle = fill; c.fill(); c.stroke(); };
+  if (object.type === "tree" || object.type === "pine") {
+    c.beginPath(); c.roundRect(-s*.12, -s*.05, s*.24, s*.52, s*.08); fillStroke("#b77a58");
+    if (object.type === "tree") {
+      [[0,-.28,.31],[-.2,-.12,.25],[.2,-.12,.25]].forEach(([x,y,r]) => { c.beginPath(); c.arc(x*s,y*s,r*s,0,Math.PI*2); fillStroke("#78bd78"); });
+    } else {
+      [-.34,-.16,.02].forEach((y,index) => { c.beginPath(); c.moveTo(0,(y-.3)*s); c.lineTo((-0.33+index*.035)*s,(y+.25)*s); c.lineTo((.33-index*.035)*s,(y+.25)*s); c.closePath(); fillStroke(index === 0 ? "#5aa878" : "#6bb984"); });
+    }
+  } else if (object.type === "bush") {
+    [[-.25,.03,.23],[0,-.12,.29],[.25,.03,.23],[0,.13,.3]].forEach(([x,y,r]) => { c.beginPath(); c.arc(x*s,y*s,r*s,0,Math.PI*2); fillStroke("#72bf75"); });
+  } else if (object.type === "rock") {
+    c.beginPath(); c.moveTo(-s*.42,s*.25); c.quadraticCurveTo(-s*.38,-s*.2,-s*.12,-s*.34); c.quadraticCurveTo(s*.34,-s*.4,s*.43,s*.22); c.closePath(); fillStroke("#aaa9ba");
+  } else if (object.type === "cloud") {
+    [[-.25,.08,.23],[0,-.08,.3],[.27,.08,.22],[0,.16,.37]].forEach(([x,y,r]) => { c.beginPath(); c.arc(x*s,y*s,r*s,0,Math.PI*2); fillStroke("#ffffff"); });
+  } else if (object.type === "sun") {
+    c.strokeStyle="#e8a83b"; c.lineWidth=s*.055; for(let i=0;i<12;i+=1){const a=i*Math.PI/6;c.beginPath();c.moveTo(Math.cos(a)*s*.34,Math.sin(a)*s*.34);c.lineTo(Math.cos(a)*s*.48,Math.sin(a)*s*.48);c.stroke();} c.beginPath();c.arc(0,0,s*.27,0,Math.PI*2);fillStroke("#ffd96d");
+  } else if (object.type === "flower") {
+    c.strokeStyle="#5e9e67"; c.lineWidth=s*.04; c.beginPath();c.moveTo(0,s*.4);c.lineTo(0,0);c.stroke(); for(let i=0;i<7;i+=1){const a=i*Math.PI*2/7;c.beginPath();c.ellipse(Math.cos(a)*s*.19,Math.sin(a)*s*.19,s*.12,s*.2,a,0,Math.PI*2);fillStroke("#f4a9cf");} c.beginPath();c.arc(0,0,s*.12,0,Math.PI*2);fillStroke("#ffd361");
+  } else if (object.type === "mushroom") {
+    c.beginPath();c.roundRect(-s*.13,-s*.02,s*.26,s*.42,s*.1);fillStroke("#fff0d3"); c.beginPath();c.arc(0,-s*.06,s*.36,Math.PI,0);c.closePath();fillStroke("#dc789f"); c.fillStyle="#fff8ed";[-.18,0,.18].forEach((x)=>{c.beginPath();c.arc(x*s,-s*.16,s*.055,0,Math.PI*2);c.fill();});
+  }
+  c.restore();
+}
+
+function drawSelection() {
+  const object = selectedSceneObject();
+  if (!object) return;
+  const bounds = sceneObjectBounds(object);
+  ctx.save(); ctx.strokeStyle = "#ec65ad"; ctx.lineWidth = 10; ctx.setLineDash([22, 14]); ctx.strokeRect(bounds.left, bounds.top, bounds.size, bounds.size); ctx.setLineDash([]); ctx.fillStyle = "#ec65ad"; ctx.strokeStyle="#fff";ctx.lineWidth=8;ctx.beginPath();ctx.arc(bounds.right,bounds.bottom,34,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
 }
 
 function getPressure(event) {
@@ -459,8 +879,8 @@ function getPressure(event) {
 function getCanvasPoint(event) {
   const rect = canvas.getBoundingClientRect();
   return {
-    x: Math.round(((event.clientX - rect.left) / rect.width) * CANVAS_SIZE),
-    y: Math.round(((event.clientY - rect.top) / rect.height) * CANVAS_SIZE)
+    x: Math.round(((event.clientX - rect.left) / rect.width) * activeWidth()),
+    y: Math.round(((event.clientY - rect.top) / rect.height) * activeHeight())
   };
 }
 
@@ -675,36 +1095,41 @@ function resetContext(context) {
 }
 
 function floodFill(x, y, color) {
-  scratchCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  scratchCtx.fillStyle = "#fffdf7";
-  scratchCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  scratchCtx.drawImage(templateLayer, 0, 0);
-  scratchCtx.drawImage(drawingLayer, 0, 0);
-  scratchCtx.drawImage(templateLayer, 0, 0);
-  const imageData = scratchCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  const width = activeWidth();
+  const height = activeHeight();
+  const fillScratchCtx = state.projectMode === "forest" ? forestScratchCtx : scratchCtx;
+  fillScratchCtx.clearRect(0, 0, width, height);
+  fillScratchCtx.fillStyle = "#fffdf7";
+  fillScratchCtx.fillRect(0, 0, width, height);
+  if (state.projectMode === "forest") fillScratchCtx.drawImage(sceneLayer, 0, 0);
+  else fillScratchCtx.drawImage(templateLayer, 0, 0);
+  fillScratchCtx.drawImage(drawingLayer, 0, 0);
+  if (state.projectMode === "coloring") fillScratchCtx.drawImage(templateLayer, 0, 0);
+  const imageData = fillScratchCtx.getImageData(0, 0, width, height);
   const data = imageData.data;
-  const templateData = templateCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data;
+  const templateData = state.projectMode === "coloring" ? templateCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data : null;
   const isTemplateLine = (index) => {
-    const px = index % CANVAS_SIZE;
-    const py = Math.floor(index / CANVAS_SIZE);
+    if (!templateData) return false;
+    const px = index % width;
+    const py = Math.floor(index / width);
     for (let dy = -1; dy <= 1; dy += 1) {
       const y = py + dy;
-      if (y < 0 || y >= CANVAS_SIZE) continue;
+      if (y < 0 || y >= height) continue;
       for (let dx = -1; dx <= 1; dx += 1) {
         const x = px + dx;
-        if (x < 0 || x >= CANVAS_SIZE) continue;
-        if (templateData[(y * CANVAS_SIZE + x) * 4 + 3] > 0) return true;
+        if (x < 0 || x >= width) continue;
+        if (templateData[(y * width + x) * 4 + 3] > 0) return true;
       }
     }
     return false;
   };
-  const start = (y * CANVAS_SIZE + x) * 4;
+  const start = (y * width + x) * 4;
   const target = [data[start], data[start + 1], data[start + 2], data[start + 3]];
   const fill = hexToRgba(color);
-  const startIndex = y * CANVAS_SIZE + x;
+  const startIndex = y * width + x;
   if (colorDistance(target, fill) < 16 || isTemplateLine(startIndex) || isLineColor(target)) return;
-  const mask = new Uint8Array(CANVAS_SIZE * CANVAS_SIZE);
-  const queue = new Int32Array(CANVAS_SIZE * CANVAS_SIZE);
+  const mask = new Uint8Array(width * height);
+  const queue = new Int32Array(width * height);
   let head = 0;
   let tail = 0;
   queue[tail] = startIndex;
@@ -714,26 +1139,26 @@ function floodFill(x, y, color) {
   while (head < tail) {
     const index = queue[head];
     head += 1;
-    const px = index % CANVAS_SIZE;
-    const py = Math.floor(index / CANVAS_SIZE);
+    const px = index % width;
+    const py = Math.floor(index / width);
     const offset = index * 4;
     const current = [data[offset], data[offset + 1], data[offset + 2], data[offset + 3]];
     if (isTemplateLine(index) || isLineColor(current) || colorDistance(current, target) > tolerance) continue;
     mask[index] = 1;
-    if (px + 1 < CANVAS_SIZE) {
+    if (px + 1 < width) {
       tail = enqueueFillPixel(queue, mask, tail, index + 1);
     }
     if (px > 0) {
       tail = enqueueFillPixel(queue, mask, tail, index - 1);
     }
-    if (py + 1 < CANVAS_SIZE) {
-      tail = enqueueFillPixel(queue, mask, tail, index + CANVAS_SIZE);
+    if (py + 1 < height) {
+      tail = enqueueFillPixel(queue, mask, tail, index + width);
     }
     if (py > 0) {
-      tail = enqueueFillPixel(queue, mask, tail, index - CANVAS_SIZE);
+      tail = enqueueFillPixel(queue, mask, tail, index - width);
     }
   }
-  const layerData = drawingCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  const layerData = drawingCtx.getImageData(0, 0, width, height);
   const layer = layerData.data;
   for (let i = 0; i < mask.length; i += 1) {
     if (!mask[i]) continue;
@@ -772,16 +1197,37 @@ function hexToRgba(hex) {
 }
 
 function pushUndo() {
-  undoStack.push(drawingCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE));
-  if (undoStack.length > 14) undoStack.shift();
+  undoStack.push(captureSnapshot());
+  if (undoStack.length > 6) undoStack.shift();
   updateUndoRedo();
+}
+
+function captureSnapshot({ includeDrawing = !(state.projectMode === "forest" && state.forestMode === "build") } = {}) {
+  return {
+    drawing: includeDrawing ? drawingCtx.getImageData(0, 0, activeWidth(), activeHeight()) : null,
+    sceneObjects: state.projectMode === "forest" ? state.sceneObjects.map((object) => ({ ...object })) : null,
+    projectMode: state.projectMode
+  };
+}
+
+function restoreSnapshot(snapshot) {
+  const normalized = snapshot && Object.prototype.hasOwnProperty.call(snapshot, "drawing")
+    ? snapshot
+    : { drawing: snapshot, sceneObjects: state.sceneObjects, projectMode: state.projectMode };
+  if (normalized.drawing) drawingCtx.putImageData(normalized.drawing, 0, 0);
+  if (state.projectMode === "forest" && normalized.sceneObjects) {
+    state.sceneObjects = normalized.sceneObjects.map((object) => ({ ...object }));
+  }
+  state.selectedObjectId = null;
+  renderScene();
+  updateForestControls();
 }
 
 function undo() {
   if (undoStack.length <= 1) return;
-  redoStack.push(drawingCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE));
-  undoStack.pop();
-  drawingCtx.putImageData(undoStack[undoStack.length - 1], 0, 0);
+  const snapshot = undoStack.pop();
+  redoStack.push(captureSnapshot({ includeDrawing: Boolean(snapshot.drawing) }));
+  restoreSnapshot(snapshot);
   draw();
   autosave();
   updateUndoRedo();
@@ -789,9 +1235,9 @@ function undo() {
 
 function redo() {
   if (!redoStack.length) return;
-  const imageData = redoStack.pop();
-  undoStack.push(imageData);
-  drawingCtx.putImageData(imageData, 0, 0);
+  const snapshot = redoStack.pop();
+  undoStack.push(captureSnapshot({ includeDrawing: Boolean(snapshot.drawing) }));
+  restoreSnapshot(snapshot);
   draw();
   autosave();
   updateUndoRedo();
@@ -803,23 +1249,33 @@ function updateUndoRedo() {
 }
 
 function clearDrawing() {
-  drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  undoStack = [];
-  redoStack = [];
+  drawingCtx.clearRect(0, 0, activeWidth(), activeHeight());
+  if (state.projectMode === "forest") {
+    state.sceneObjects = [];
+    state.selectedObjectId = null;
+    renderScene();
+  }
+  undoStack.length = 0;
+  redoStack.length = 0;
   state.dirty = false;
 }
 
 function compositeDataUrl(scale = 1) {
   const output = document.createElement("canvas");
-  output.width = CANVAS_SIZE * scale;
-  output.height = CANVAS_SIZE * scale;
+  output.width = activeWidth() * scale;
+  output.height = activeHeight() * scale;
   const outputCtx = output.getContext("2d");
   outputCtx.fillStyle = "#fffdf7";
   outputCtx.fillRect(0, 0, output.width, output.height);
   outputCtx.scale(scale, scale);
-  outputCtx.drawImage(templateLayer, 0, 0);
-  outputCtx.drawImage(drawingLayer, 0, 0);
-  outputCtx.drawImage(templateLayer, 0, 0);
+  if (state.projectMode === "forest") {
+    outputCtx.drawImage(sceneLayer, 0, 0);
+    outputCtx.drawImage(drawingLayer, 0, 0);
+  } else {
+    outputCtx.drawImage(templateLayer, 0, 0);
+    outputCtx.drawImage(drawingLayer, 0, 0);
+    outputCtx.drawImage(templateLayer, 0, 0);
+  }
   return output.toDataURL("image/png");
 }
 
@@ -827,6 +1283,8 @@ async function saveArtwork() {
   const artwork = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     pageId: state.pageId,
+    projectMode: state.projectMode,
+    sceneObjects: state.projectMode === "forest" ? state.sceneObjects : [],
     drawing: drawingLayer.toDataURL("image/png"),
     preview: compositeDataUrl(0.32),
     createdAt: new Date().toISOString()
@@ -843,7 +1301,7 @@ async function renderGallery() {
   const artworks = await readArtworks();
   emptyGallery.classList.toggle("is-hidden", artworks.length > 0);
   galleryGrid.innerHTML = artworks.map((art) => `
-    <article class="gallery-card" data-art="${art.id}">
+    <article class="gallery-card${art.projectMode === "forest" ? " is-forest" : ""}" data-art="${art.id}">
       <img src="${art.preview}" alt="Saved artwork" />
       <footer>
         <time datetime="${art.createdAt}">${formatDate(art.createdAt)}</time>
@@ -873,20 +1331,31 @@ async function readArtworks() {
 }
 
 async function loadArtwork(id) {
+  const loadToken = ++artworkLoadToken;
   const art = await dbGet(ART_STORE, id);
-  if (!art) return;
-  state.pageId = art.pageId;
-  clearDrawing();
-  loadTemplate(state.pageId);
+  if (!art || loadToken !== artworkLoadToken) return;
+  const artMode = art.projectMode || "coloring";
   const image = new Image();
   image.onload = () => {
-    drawingCtx.drawImage(image, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    if (loadToken !== artworkLoadToken) return;
+    state.pageId = art.pageId;
+    state.projectMode = artMode;
+    activateWorkspace(artMode);
+    clearDrawing();
+    if (artMode === "forest") {
+      state.sceneObjects = (art.sceneObjects || []).map((object) => ({ ...object }));
+      renderScene();
+    } else loadTemplate(state.pageId);
+    drawingCtx.drawImage(image, 0, 0, activeWidth(), activeHeight());
     pushUndo();
     draw();
     autosave();
     updateSelectedControls();
-    setView("studio");
+    setView(state.projectMode === "forest" ? "forest" : "studio");
     showToast("Artwork opened");
+  };
+  image.onerror = () => {
+    if (loadToken === artworkLoadToken) showToast("Could not open that artwork");
   };
   image.src = art.drawing;
 }
@@ -913,8 +1382,28 @@ function autosave() {
     palette: state.palette,
     color: state.color,
     size: state.size,
-    drawing: drawingLayer.toDataURL("image/png")
+    projectMode: state.projectMode,
+    forestMode: state.forestMode,
+    sceneObjects: state.sceneObjects,
+    forestCanvasVersion: 2,
+    studioDrawing: studioDrawingLayer.toDataURL("image/png"),
+    forestDrawing: forestDrawingLayer.toDataURL("image/png")
   }).catch(() => {});
+}
+
+function loadCanvasData(layer, dataUrl) {
+  if (!dataUrl) return Promise.resolve();
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const layerContext = layer.getContext("2d", { willReadFrequently: true });
+      layerContext.clearRect(0, 0, layer.width, layer.height);
+      layerContext.drawImage(image, 0, 0, layer.width, layer.height);
+      resolve();
+    };
+    image.onerror = resolve;
+    image.src = dataUrl;
+  });
 }
 
 async function restoreAutosave() {
@@ -926,18 +1415,29 @@ async function restoreAutosave() {
       brush: saved.brush || state.brush,
       palette: saved.palette || state.palette,
       color: saved.color || state.color,
-      size: saved.size || state.size
+      size: saved.size || state.size,
+      projectMode: saved.projectMode || state.projectMode,
+      forestMode: saved.forestMode || state.forestMode,
+      sceneObjects: Array.isArray(saved.sceneObjects) ? saved.sceneObjects : []
     });
+    if (!saved.forestCanvasVersion && state.sceneObjects.length) {
+      state.sceneObjects = state.sceneObjects.map((object) => ({
+        ...object,
+        x: object.x * (FOREST_WIDTH / CANVAS_SIZE),
+        y: object.y * (FOREST_HEIGHT / CANVAS_SIZE)
+      }));
+    }
     currentPalette();
-    const image = new Image();
-    image.onload = () => {
-      drawingCtx.drawImage(image, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-      undoStack = [];
-      pushUndo();
-      draw();
-      updateSelectedControls();
-    };
-    image.src = saved.drawing;
+    // Legacy autosaves used one shared canvas. Keep that artwork in Studio so it
+    // can never leak into the independent Forest workspace.
+    await Promise.all([
+      loadCanvasData(studioDrawingLayer, saved.studioDrawing || saved.drawing),
+      loadCanvasData(forestDrawingLayer, saved.forestDrawing)
+    ]);
+    histories.coloring.undo.length = 0;
+    histories.coloring.redo.length = 0;
+    histories.forest.undo.length = 0;
+    histories.forest.redo.length = 0;
   } catch {
     await dbDelete(META_STORE, AUTOSAVE_KEY).catch(() => {});
   }
