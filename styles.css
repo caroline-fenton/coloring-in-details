@@ -874,6 +874,18 @@ input[type="range"]:focus-visible::-moz-range-thumb,
   user-select: none;
 }
 
+.template-preview {
+  position: absolute;
+  inset: clamp(10px, 1.2vw, 16px);
+  z-index: 2;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 24px;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
 .gallery-view {
   height: 100%;
   overflow: auto;

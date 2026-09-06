@@ -8,6 +8,7 @@ const META_STORE = "meta";
 const AUTOSAVE_KEY = "color-studio-current";
 
 const canvas = document.querySelector("#artCanvas");
+const templatePreview = document.querySelector("#templatePreview");
 const ctx = canvas.getContext("2d", { willReadFrequently: true });
 const pictureStrip = document.querySelector("#pictureStrip");
 const brushGrid = document.querySelector("#brushGrid");
@@ -168,6 +169,7 @@ let artworkLoadToken = 0;
 
 function activateWorkspace(mode) {
   document.body.classList.toggle("is-forest-workspace", mode === "forest");
+  if (mode === "forest") templatePreview.classList.add("is-hidden");
   drawingLayer = mode === "forest" ? forestDrawingLayer : studioDrawingLayer;
   drawingCtx = drawingLayer.getContext("2d", { willReadFrequently: true });
   canvas.width = drawingLayer.width;
@@ -479,6 +481,8 @@ function setView(view) {
 function loadTemplate(pageId) {
   const page = getPage(pageId);
   state.pageId = page.id;
+  templatePreview.classList.add("is-hidden");
+  templatePreview.removeAttribute("src");
   const image = new Image();
   image.onload = () => {
     if (state.projectMode !== "coloring" || state.pageId !== page.id) return;
@@ -498,10 +502,9 @@ function readTemplatePixels(image, scale, x, y, width, height) {
     return scratchCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   } catch {
     // Browsers block pixel reads when the app is opened directly from file://.
-    // Keep local previews useful by showing the page without line extraction.
-    templateCtx.fillStyle = "#fffdf7";
-    templateCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    templateCtx.drawImage(image, x, y, width, height);
+    // Show the source outside the canvas so Save and Export remain origin-clean.
+    templatePreview.src = image.src;
+    templatePreview.classList.remove("is-hidden");
     return null;
   }
 }

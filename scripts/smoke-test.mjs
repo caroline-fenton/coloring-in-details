@@ -67,6 +67,7 @@ const checks = [
   [js.includes('art.backgroundTheme || "original-forest"') && js.includes('saved.backgroundTheme || "original-forest"'), "Legacy Forest saves migrate to Original Forest"],
   [/await restoreAutosave\(\);\s*renderObjectGrid\(\);/.test(js), "Restored sticker pack rebuilds its object grid"],
   [js.includes('stickerPack: state.projectMode === "forest" ? state.stickerPack : null') && js.includes('art.stickerPack || "forest-friends"'), "Gallery artwork preserves its sticker pack"],
+  [html.includes('id="templatePreview"') && js.includes("templatePreview.src = image.src"), "File preview keeps restricted images outside export canvases"],
   [js.includes("startSceneGesture") && js.includes("continueSceneGesture"), "Forest objects support touch movement and resizing"],
   [js.includes("deleteSelectedObject") && js.includes("duplicateSelectedObject"), "Forest object actions exist"],
   [js.includes("resetForest") && html.includes('data-action="resetForest"'), "Forest can be reset in one action"],

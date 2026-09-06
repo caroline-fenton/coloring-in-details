@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.svg" />
     <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=74" />
+    <link rel="stylesheet" href="styles.css?v=75" />
   </head>
   <body>
     <div class="app-shell">
@@ -121,6 +121,7 @@
           <section class="canvas-stage" aria-label="Drawing canvas">
             <div class="canvas-frame" id="canvasFrame">
               <canvas id="artCanvas" width="1600" height="1600" aria-label="Artwork surface"></canvas>
+              <img class="template-preview is-hidden" id="templatePreview" alt="" aria-hidden="true" />
               <div class="canvas-tip is-hidden" id="canvasTip" role="status">Drag to move • pull the pink corner to resize</div>
             </div>
           </section>
@@ -153,6 +154,6 @@
 
     <div class="celebration" id="celebration" aria-hidden="true"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=74" defer></script>
+    <script src="app.js?v=75" defer></script>
   </body>
 </html>
