@@ -14,9 +14,9 @@ The **Mythical Creatures** sticker pack adds eight original luminous characters:
 
 ## Responsive layout
 
-Color Corner preserves its side-panel workspace on desktop and iPad. Phones use a compact header, a canvas-first layout, horizontally scrollable choices, and a shorter contextual tool tray with safe-area-aware spacing.
+Phones use a fixed canvas workspace with a compact Studio/Forest/Gallery picker and Undo, Redo, and Save at the top. The bottom toolbar has labeled Draw, Stickers, Scene, Move, and More icons. One panel opens above it at a time; close it or tap the canvas to resume creating. Draw contains brushes, size, palettes, and colors. Stickers switches Forest to Build and includes selected-object editing; in Studio it selects the stamp brush. Scene chooses backgrounds or coloring pages. More contains New, Export, and Forest reset. Desktop and iPad retain their existing tool layout.
 
-In phone portrait, Forest opens in an enlarged landscape view without changing the 1920×1200 artwork. The left and right buttons move across the scene, while **Fit whole scene** provides an overview and **Explore scene** returns to the enlarged view. Phone landscape fits the whole Forest workspace naturally. These display controls do not affect sticker coordinates, saved scenes, gallery images, or exported PNGs.
+Forest keeps its 1920×1200 artwork in both orientations. Move enables dragging the view without drawing or moving objects, and contains arrows plus **Fit whole scene** / **Explore scene**. Select Draw or Stickers to create again. Panels overlay the workspace without resizing the artwork; rotation recalculates the viewport without clearing art. These display controls do not affect saved scenes or exports. Visual device testing is still required before merging the responsive draft.
 
 ## Run Locally
 

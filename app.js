@@ -182,6 +182,8 @@ function activateWorkspace(mode) {
   redoStack = histories[mode].redo;
   updateUndoRedo();
   updateForestViewport();
+  const picker = document.querySelector("#workspacePicker");
+  if (picker) picker.value = mode === "forest" ? "forest" : "studio";
 }
 
 function updateForestViewport({ center = false } = {}) {
@@ -195,6 +197,7 @@ function updateForestViewport({ center = false } = {}) {
     fitButton.setAttribute("aria-pressed", String(forestViewIsFit));
   }
   requestAnimationFrame(() => {
+    sizePhoneCanvas();
     if (!active || forestViewIsFit) canvasScroller.scrollLeft = 0;
     else if (center) canvasScroller.scrollLeft = Math.max(0, (canvasScroller.scrollWidth - canvasScroller.clientWidth) / 2);
   });
@@ -221,6 +224,7 @@ function activeHeight() { return drawingLayer.height; }
 async function init() {
   renderControls();
   bindEvents();
+  setupMobileWorkspace();
   await restoreAutosave();
   renderObjectGrid();
   activateWorkspace(state.projectMode);
@@ -312,6 +316,11 @@ function updateSelectedControls() {
 function updateForestControls() {
   const inForest = state.projectMode === "forest";
   const building = inForest && state.forestMode === "build";
+  const moveButton = document.querySelector('[data-phone-panel="move"]');
+  if (moveButton) moveButton.disabled = !inForest;
+  document.querySelectorAll("[data-phone-panel]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.phonePanel === (mobilePan ? "move" : building ? "stickers" : "draw"));
+  });
   forestModePanel.classList.toggle("is-hidden", !inForest);
   forestBuildTools.classList.toggle("is-hidden", !building);
   document.querySelectorAll(".studio-only").forEach((element) => element.classList.toggle("is-hidden", inForest));
@@ -498,6 +507,11 @@ function bindEvents() {
 }
 
 function setView(view) {
+  closeMobilePanel();
+  mobilePan = false;
+  document.body.classList.toggle("is-gallery", view === "gallery");
+  const picker = document.querySelector("#workspacePicker");
+  if (picker) picker.value = view;
   artworkLoadToken += 1;
   const studioView = view === "studio" || view === "forest";
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.view === view));
@@ -1662,6 +1676,165 @@ function celebrateSave() {
 
 function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
+}
+
+// Phone panels reuse the existing controls and handlers. Markers return each
+// control to its original position when switching back to a tablet/desktop.
+let mobilePanel = null;
+let mobileGroups = {};
+let mobileHomes = [];
+let mobilePan = false;
+let panGesture = null;
+let phoneResizeObserver;
+
+function restoreMobileControls() {
+  for (const { element, marker } of mobileHomes) marker.after(element);
+}
+
+function closeMobilePanel() {
+  restoreMobileControls();
+  mobilePanel = null;
+  document.querySelector("#mobileSheet")?.classList.add("is-hidden");
+  document.querySelectorAll("[data-phone-panel]").forEach((button) => button.setAttribute("aria-expanded", "false"));
+}
+
+function openMobilePanel(name) {
+  const wasOpen = mobilePanel === name;
+  closeMobilePanel();
+  if (wasOpen) return;
+  mobilePanel = name;
+  mobilePan = name === "move";
+  if (state.projectMode === "forest" && ["draw", "stickers", "scene"].includes(name)) {
+    setForestMode(name === "draw" ? "draw" : "build");
+  }
+  const sheet = document.querySelector("#mobileSheet");
+  const content = document.querySelector("#mobileSheetContent");
+  const forest = state.projectMode === "forest";
+  if (!forest && name === "stickers") {
+    state.brush = "sticker";
+    updateSelectedControls();
+  }
+  const group = name === "scene" ? (forest ? "background" : "picture") : name === "stickers" && !forest ? "studioStickers" : name;
+  const elements = (mobileGroups[group] || []).filter((element) => forest || !element.matches('[data-action="resetForest"]'));
+  for (const element of elements) content.append(element);
+  // More includes New/Export in Forest Build as well as Color.
+  if (name === "more") elements.forEach((element) => element.classList.remove("is-hidden"));
+  document.querySelector("#mobileSheetTitle").textContent = ({ draw: "Draw & color", stickers: "Stickers", scene: forest ? "Background" : "Choose a picture", move: "Move around", more: "More" })[name];
+  document.querySelectorAll("[data-phone-panel]").forEach((button) => {
+    button.setAttribute("aria-expanded", String(button.dataset.phonePanel === name));
+    button.classList.toggle("is-active", button.dataset.phonePanel === (mobilePan ? "move" : forest && state.forestMode === "build" ? "stickers" : "draw"));
+  });
+  sheet.classList.remove("is-hidden");
+  document.querySelector("#mobileSheetClose").focus({ preventScroll: true });
+}
+
+function sizePhoneCanvas() {
+  if (!phoneLayout.matches || document.body.classList.contains("is-gallery")) return;
+  const frame = document.querySelector("#canvasFrame");
+  const stage = document.querySelector("#canvasStage");
+  const width = stage.clientWidth - 8;
+  const height = stage.clientHeight - 8;
+  if (width <= 0 || height <= 0) return;
+  const forest = state.projectMode === "forest";
+  const ratio = forest ? FOREST_WIDTH / FOREST_HEIGHT : 1;
+  const fitWidth = Math.min(width, height * ratio);
+  const displayWidth = forest && !forestViewIsFit ? Math.max(fitWidth, height * ratio) : fitWidth;
+  frame.style.width = `${displayWidth}px`;
+  frame.style.height = `${displayWidth / ratio}px`;
+}
+
+function setupMobileWorkspace() {
+  const picker = document.createElement("select");
+  picker.id = "workspacePicker";
+  picker.setAttribute("aria-label", "Workspace");
+  picker.innerHTML = '<option value="studio">Studio</option><option value="forest">Forest</option><option value="gallery">Gallery</option>';
+  document.querySelector(".topbar").prepend(picker);
+  picker.addEventListener("change", () => setView(picker.value));
+  const sheet = document.createElement("section");
+  sheet.id = "mobileSheet";
+  sheet.className = "is-hidden";
+  sheet.setAttribute("aria-labelledby", "mobileSheetTitle");
+  sheet.innerHTML = '<div class="mobile-sheet-head"><strong id="mobileSheetTitle"></strong><button id="mobileSheetClose" type="button" aria-label="Close tools">×</button></div><div id="mobileSheetContent"></div>';
+  document.querySelector(".app-shell").append(sheet);
+  const paths = {
+    draw: '<path d="m4 17-1 4 4-1L20 7l-3-3L4 17ZM14 7l3 3"/>',
+    stickers: '<path d="M20 13V6a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v11a3 3 0 0 0 3 3h7l7-7ZM13 20v-7h7"/><path d="M7 8h.01M14 8h.01M7 12q3 3 6 0"/>',
+    scene: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m3 17 6-6 4 4 3-3 5 5"/><circle cx="15" cy="8" r="1"/>',
+    move: '<path d="M12 2v20M2 12h20M8 6l4-4 4 4M8 18l4 4 4-4M6 8l-4 4 4 4M18 8l4 4-4 4"/>',
+    more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
+  };
+  const dock = document.createElement("nav");
+  dock.id = "mobileDock";
+  dock.setAttribute("aria-label", "Art tools");
+  dock.innerHTML = Object.entries(paths).map(([name, path]) => `<button type="button" data-phone-panel="${name}" aria-controls="mobileSheet" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg><span>${name[0].toUpperCase() + name.slice(1)}</span></button>`).join("");
+  document.querySelector(".app-shell").append(dock);
+  dock.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-phone-panel]");
+    if (button) openMobilePanel(button.dataset.phonePanel);
+  });
+  document.querySelector("#mobileSheetClose").addEventListener("click", () => {
+    const previous = mobilePanel;
+    closeMobilePanel();
+    document.querySelector(`[data-phone-panel="${previous}"]`)?.focus();
+  });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeMobilePanel(); });
+  const build = [...forestBuildTools.children];
+  mobileGroups = {
+    draw: [...document.querySelectorAll(".tool-group.draw-tools")],
+    studioStickers: [...document.querySelectorAll(".tool-group.draw-tools")].slice(1),
+    picture: [document.querySelector(".tool-group.studio-only")],
+    background: build.slice(0, 2),
+    stickers: [...build.slice(6, 9), ...build.slice(2, 6)],
+    more: [document.querySelector(".tool-row"), build[9]],
+    move: [forestViewportControls]
+  };
+  const moveHint = document.createElement("p");
+  moveHint.textContent = "Drag the scene to look around. Choose Draw or Stickers when you’re ready to create.";
+  forestViewportControls.prepend(moveHint);
+  for (const element of new Set(Object.values(mobileGroups).flat())) {
+    const marker = document.createComment("phone-control-home");
+    element.before(marker);
+    mobileHomes.push({ element, marker });
+  }
+  sheet.addEventListener("click", (event) => {
+    if (event.target.closest("[data-object], [data-page], [data-background-theme]")) {
+      closeMobilePanel();
+      if (event.target.closest("[data-object]")) {
+        const selected = selectedSceneObject();
+        if (selected) canvasScroller.scrollLeft = selected.x / FOREST_WIDTH * canvas.clientWidth - canvasScroller.clientWidth / 2;
+      }
+    }
+  });
+  // Move mode captures one pointer before the drawing handlers see it.
+  canvas.addEventListener("pointerdown", (event) => {
+    if (!phoneLayout.matches) return;
+    closeMobilePanel();
+    if (!mobilePan) return;
+    event.stopImmediatePropagation(); event.preventDefault();
+    if (panGesture) return;
+    canvas.setPointerCapture(event.pointerId);
+    panGesture = { id: event.pointerId, x: event.clientX, scroll: canvasScroller.scrollLeft };
+  }, true);
+  canvas.addEventListener("pointermove", (event) => {
+    if (!panGesture || event.pointerId !== panGesture.id) return;
+    event.stopImmediatePropagation(); event.preventDefault();
+    canvasScroller.scrollLeft = panGesture.scroll + panGesture.x - event.clientX;
+  }, true);
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) canvas.addEventListener(type, (event) => {
+    if (panGesture?.id !== event.pointerId) return;
+    event.stopImmediatePropagation(); panGesture = null;
+  }, true);
+  const refresh = () => {
+    closeMobilePanel(); mobilePan = false; panGesture = null;
+    updateForestControls();
+    const frame = document.querySelector("#canvasFrame");
+    frame.style.removeProperty("width"); frame.style.removeProperty("height");
+    sizePhoneCanvas();
+  };
+  phoneLayout.addEventListener("change", refresh);
+  phoneResizeObserver = new ResizeObserver(sizePhoneCanvas);
+  phoneResizeObserver.observe(document.querySelector("#canvasStage"));
+  refresh();
 }
 
 init();
