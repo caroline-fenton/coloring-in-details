@@ -94,7 +94,7 @@ const brushes = [
   { id: "paint", label: "Paint", icon: "●", composite: "source-over", alpha: 0.7 },
   { id: "neon", label: "Neon", icon: "✺", composite: "source-over", alpha: 0.95 },
   { id: "glitter", label: "Glitter", icon: "✷", composite: "source-over", alpha: 0.82 },
-  { id: "sticker", label: "Stickers", icon: "♡", composite: "source-over", alpha: 1 },
+  { id: "sticker", label: "Stamps", icon: "♡", composite: "source-over", alpha: 1 },
   { id: "fill", label: "Fill", icon: "▣", composite: "source-over", alpha: 1 },
   { id: "eraser", label: "Erase", icon: "⌫", composite: "destination-out", alpha: 1 }
 ];
@@ -149,7 +149,7 @@ let state = {
   drawing: false,
   lastPoint: null,
   dirty: false,
-  projectMode: "coloring",
+  projectMode: "forest",
   forestMode: "build",
   stickerPack: "mythical-creatures",
   backgroundTheme: "enchanted",
@@ -227,6 +227,8 @@ async function init() {
   setupMobileWorkspace();
   await restoreAutosave();
   renderObjectGrid();
+  // Keep both saved artworks, but always land in Worlds on a fresh launch.
+  state.projectMode = "forest";
   activateWorkspace(state.projectMode);
   updateForestViewport({ center: state.projectMode === "forest" });
   renderColors();
@@ -334,7 +336,7 @@ function updateForestControls() {
   document.querySelectorAll("[data-background-theme]").forEach((button) => button.classList.toggle("is-active", button.dataset.backgroundTheme === state.backgroundTheme));
   document.querySelector("#forestHint").textContent = building
     ? "Tap an object, then drag it into your scene."
-    : "Draw, color, and add stickers over your finished forest.";
+    : "Draw, color, and add stamps over your finished world.";
   const selected = selectedSceneObject();
   document.body.classList.toggle("has-selected-sticker", Boolean(selected));
   document.querySelectorAll("[data-object]").forEach((button) => button.classList.toggle("is-active", button.dataset.object === selected?.type));
@@ -344,7 +346,7 @@ function updateForestControls() {
   objectSizeOutput.value = selected ? `${Math.round(selected.scale * 100)}%` : "—";
   updateObjectSizeRange();
   canvasTip.classList.toggle("is-hidden", !building || !selected);
-  canvas.setAttribute("aria-label", building ? "Forest scene builder. Drag objects to move and use the corner handle to resize." : "Artwork surface");
+  canvas.setAttribute("aria-label", building ? "Worlds scene builder. Drag objects to move and use the corner handle to resize." : "Artwork surface");
 }
 
 function updateSizePreview() {
@@ -486,7 +488,7 @@ function bindEvents() {
   document.querySelector("[data-action='save']").addEventListener("click", saveArtwork);
   document.querySelector("[data-action='new']").addEventListener("click", () => {
     const isForest = state.projectMode === "forest";
-    confirmAction(isForest ? "Start a new forest?" : "Start a new picture?", isForest ? "Your current forest scene and coloring will be cleared." : "Your current drawing will be cleared from the studio.", () => {
+    confirmAction(isForest ? "Start a new world?" : "Start a new picture?", isForest ? "Your current scene and coloring will be cleared." : "Your current drawing will be cleared from the studio.", () => {
       clearDrawing();
       pushUndo();
       draw();
@@ -494,7 +496,7 @@ function bindEvents() {
     });
   });
   document.querySelector("[data-action='download']").addEventListener("click", downloadArtwork);
-  document.querySelector("[data-action='backToStudio']").addEventListener("click", () => setView("studio"));
+  document.querySelector("[data-action='backToStudio']").addEventListener("click", () => setView("forest"));
 
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.view));
@@ -891,13 +893,13 @@ function duplicateSelectedObject() {
 }
 
 function resetForest() {
-  confirmAction("Start over with a new forest?", "This clears every placed object and all coloring in your current forest.", () => {
+  confirmAction("Start over with a new world?", "This clears every placed object and all coloring in your current world.", () => {
     clearDrawing();
     pushUndo();
     draw();
     autosave();
     updateSelectedControls();
-    showToast("Forest cleared");
+    showToast("World cleared");
   });
 }
 
@@ -1752,7 +1754,7 @@ function setupMobileWorkspace() {
   const picker = document.createElement("select");
   picker.id = "workspacePicker";
   picker.setAttribute("aria-label", "Workspace");
-  picker.innerHTML = '<option value="studio">Studio</option><option value="forest">Forest</option><option value="gallery">Gallery</option>';
+  picker.innerHTML = '<option value="forest">Worlds</option><option value="studio">Studio</option><option value="gallery">Gallery</option>';
   document.querySelector(".topbar").prepend(picker);
   picker.addEventListener("change", () => setView(picker.value));
   const sheet = document.createElement("section");

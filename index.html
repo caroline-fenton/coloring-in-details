@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.svg" />
     <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=79" />
+    <link rel="stylesheet" href="styles.css?v=80" />
   </head>
   <body>
     <div class="app-shell">
@@ -29,8 +29,8 @@
           </span>
         </div>
         <nav class="view-tabs" aria-label="Views">
-          <button class="tab is-active" type="button" data-view="studio">Studio</button>
-          <button class="tab" type="button" data-view="forest">Forest</button>
+          <button class="tab is-active" type="button" data-view="forest">Worlds</button>
+          <button class="tab" type="button" data-view="studio">Studio</button>
           <button class="tab" type="button" data-view="gallery">Gallery</button>
         </nav>
         <div class="top-actions">
@@ -54,8 +54,8 @@
         <section class="studio-view" data-panel="studio">
           <aside class="tool-panel" aria-label="Art tools">
             <div class="forest-mode-panel is-hidden" id="forestModePanel">
-              <div class="tool-label">Forest mode</div>
-              <div class="mode-switch" role="group" aria-label="Forest mode">
+              <div class="tool-label">Worlds mode</div>
+              <div class="mode-switch" role="group" aria-label="Worlds mode">
                 <button class="mode-button is-active" type="button" data-forest-mode="build">Build</button>
                 <button class="mode-button" type="button" data-forest-mode="draw">Color</button>
               </div>
@@ -126,10 +126,10 @@
                 <div class="canvas-tip is-hidden" id="canvasTip" role="status">Drag to move • pull the pink corner to resize</div>
               </div>
             </div>
-            <div class="forest-viewport-controls" id="forestViewportControls" aria-label="Forest view controls">
-              <button class="icon-button forest-pan-button" type="button" data-action="panForestLeft" aria-label="See the left side of the forest" title="See left">‹</button>
+            <div class="forest-viewport-controls" id="forestViewportControls" aria-label="Worlds view controls">
+              <button class="icon-button forest-pan-button" type="button" data-action="panForestLeft" aria-label="See the left side of the scene" title="See left">‹</button>
               <button class="soft-button forest-fit-button" type="button" data-action="toggleForestFit" aria-pressed="false">Fit whole scene</button>
-              <button class="icon-button forest-pan-button" type="button" data-action="panForestRight" aria-label="See the right side of the forest" title="See right">›</button>
+              <button class="icon-button forest-pan-button" type="button" data-action="panForestRight" aria-label="See the right side of the scene" title="See right">›</button>
             </div>
           </section>
         </section>
@@ -161,6 +161,6 @@
 
     <div class="celebration" id="celebration" aria-hidden="true"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=79" defer></script>
+    <script src="app.js?v=80" defer></script>
   </body>
 </html>
