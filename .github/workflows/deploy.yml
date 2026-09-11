@@ -33,21 +33,32 @@ jobs:
         run: |
           npm test
           node scripts/preview-worker-test.mjs
+          node scripts/package-pages-test.mjs
 
       - name: Checkout responsive preview
+        id: preview
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           ref: codex/responsive-phone-preview
           path: .preview-source
 
       - name: Test preview
+        if: ${{ steps.preview.outcome == 'success' }}
         working-directory: .preview-source
         run: |
           node --check app.js
           npm test
 
       - name: Package live app and isolated preview
-        run: node scripts/package-pages.mjs
+        env:
+          PREVIEW_READY: ${{ steps.preview.outcome == 'success' }}
+        run: |
+          if [ "$PREVIEW_READY" = "true" ]; then
+            node scripts/package-pages.mjs --preview
+          else
+            node scripts/package-pages.mjs
+          fi
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
