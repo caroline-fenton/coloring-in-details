@@ -1,4 +1,4 @@
-const CACHE_NAME = "color-corner-v75";
+const CACHE_NAME = "color-corner-v80";
 const PREVIEW_URL = new URL("preview/", self.registration.scope);
 function isPreviewRequest(request) {
   const url = new URL(request.url);
@@ -10,6 +10,8 @@ const ASSETS = [
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./styles.css?v=80",
+  "./app.js?v=80",
   "./manifest.webmanifest",
   "./icons/icon-192.svg",
   "./icons/icon-512.svg",
@@ -75,7 +77,13 @@ self.addEventListener("fetch", (event) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
-      }).catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
+      }).catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        return event.request.mode === "navigate"
+          ? (await caches.match("./index.html")) || Response.error()
+          : Response.error();
+      })
     );
     return;
   }
@@ -84,6 +92,6 @@ self.addEventListener("fetch", (event) => {
       const copy = response.clone();
       caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
       return response;
-    }).catch(() => caches.match("./index.html")))
+    }).catch(() => Response.error()))
   );
 });

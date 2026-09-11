@@ -12,6 +12,12 @@ Forest Mode uses an original, project-local 16:10 enchanted woodland background 
 
 The **Mythical Creatures** sticker pack adds eight original luminous characters: two crystal dragons, a rainbow winged creature, moon unicorn, aurora phoenix, frost dragon, tiny fairy, and mushroom sprite. Scene builders can pair either sticker pack with the Original Forest or the Moonlight, Enchanted, Fairy Glow, Mushroom Magic, and Crystal Dream backgrounds. Theme choices autosave and are preserved in gallery artwork.
 
+## Responsive layout
+
+Phones use a fixed canvas workspace with a compact Studio/Forest/Gallery picker and Undo, Redo, and Save at the top. The bottom toolbar has labeled Draw, Stickers, Scene, Move, and More icons. One panel opens above it at a time; close it or tap the canvas to resume creating. Draw contains brushes, size, palettes, and colors. Stickers switches Forest to Build and includes selected-object editing; in Studio it selects the stamp brush. Scene chooses backgrounds or coloring pages. More contains New, Export, and Forest reset. Desktop and iPad retain their existing tool layout.
+
+Forest keeps its 1920×1200 artwork in both orientations. Move enables dragging the view without drawing or moving objects, and contains arrows plus **Fit whole scene** / **Explore scene**. Select Draw or Stickers to create again. Panels overlay the workspace without resizing the artwork; rotation recalculates the viewport without clearing art. These display controls do not affect saved scenes or exports. Visual device testing is still required before merging the responsive draft.
+
 ## Run Locally
 
 ```bash
