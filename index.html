@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.svg" />
     <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=80" />
+    <link rel="stylesheet" href="styles.css?v=81" />
   </head>
   <body>
     <div class="app-shell">
@@ -83,7 +83,7 @@
               <button class="soft-button forest-reset-button" type="button" data-action="resetForest">Start over</button>
             </div>
 
-            <div class="tool-group studio-only">
+            <div class="tool-group studio-only picture-tools">
               <div class="tool-label">Picture</div>
               <div class="picture-strip" id="pictureStrip"></div>
             </div>
@@ -93,7 +93,7 @@
               <div class="brush-grid" id="brushGrid"></div>
             </div>
 
-            <div class="tool-group draw-tools">
+            <div class="tool-group draw-tools brush-size-tools">
               <div class="slider-row">
                 <label for="sizeRange">Size</label>
                 <output class="size-preview" id="sizeOutput" for="sizeRange" aria-label="Selected brush size">
@@ -106,10 +106,10 @@
               </div>
             </div>
 
-            <div class="tool-group draw-tools">
-              <div class="tool-label">Palette</div>
-              <div class="palette-tabs" id="paletteTabs"></div>
+            <div class="tool-group draw-tools palette-tools">
+              <div class="tool-label">Colors</div>
               <div class="color-grid" id="colorGrid"></div>
+              <div class="palette-tabs" id="paletteTabs"></div>
             </div>
 
             <div class="tool-row draw-tools">
@@ -119,6 +119,7 @@
           </aside>
 
           <section class="canvas-stage" id="canvasStage" aria-label="Drawing canvas">
+            <div id="quickColors" class="quick-colors" role="group" aria-label="Current palette"></div>
             <div class="canvas-scroller" id="canvasScroller">
               <div class="canvas-frame" id="canvasFrame">
                 <canvas id="artCanvas" width="1600" height="1600" aria-label="Artwork surface"></canvas>
@@ -161,6 +162,6 @@
 
     <div class="celebration" id="celebration" aria-hidden="true"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=80" defer></script>
+    <script src="app.js?v=81" defer></script>
   </body>
 </html>

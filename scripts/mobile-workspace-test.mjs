@@ -76,3 +76,15 @@ context.home = { element: node("original"), marker: { after(element) { restored 
 run("mobileHomes = [home]; closeMobilePanel()");
 assert.ok(restored, "Closing returns controls to their original DOM positions");
 console.log("Phone panel/mode, control restoration, and canvas sizing checks passed");
+
+run("closeMobilePanel()");
+context.state.projectMode = "forest";
+run('openMobilePanel("colors")');
+assert.equal(context.state.forestMode, "draw", "Colors enables drawing in Worlds");
+run("closeMobilePanel()");
+context.state.projectMode = "coloring";
+context.state.brush = "marker";
+context.state.color = "#abc123";
+run('openMobilePanel("colors")');
+assert.equal(context.state.brush, "marker", "Opening Colors preserves the Studio tool");
+assert.equal(context.state.color, "#abc123", "Opening Colors preserves the selected color");

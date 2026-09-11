@@ -294,6 +294,7 @@ function renderObjectGrid() {
 function renderColors() {
   const palette = currentPalette();
   colorGrid.innerHTML = palette.colors.map((color) => `<button class="color-swatch" type="button" data-color="${color}" style="--swatch:${color}" aria-label="${color}"></button>`).join("");
+  document.querySelector("#quickColors").innerHTML = colorGrid.innerHTML;
 }
 
 function currentPalette() {
@@ -309,6 +310,7 @@ function currentPalette() {
 }
 
 function updateSelectedControls() {
+  document.body.classList.toggle("is-fill-tool", state.brush === "fill");
   document.querySelectorAll("[data-page]").forEach((button) => button.classList.toggle("is-active", button.dataset.page === state.pageId));
   document.querySelectorAll("[data-brush]").forEach((button) => button.classList.toggle("is-active", button.dataset.brush === state.brush));
   document.querySelectorAll("[data-palette]").forEach((button) => button.classList.toggle("is-active", button.dataset.palette === state.palette));
@@ -465,7 +467,7 @@ function bindEvents() {
     updateSelectedControls();
   });
 
-  colorGrid.addEventListener("click", (event) => {
+  document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-color]");
     if (!button) return;
     state.color = button.dataset.color;
@@ -1711,8 +1713,8 @@ function openMobilePanel(name) {
   if (wasOpen) return;
   mobilePanel = name;
   mobilePan = name === "move";
-  if (state.projectMode === "forest" && ["draw", "stickers", "scene"].includes(name)) {
-    setForestMode(name === "draw" ? "draw" : "build");
+  if (state.projectMode === "forest" && ["draw", "colors", "stickers", "scene"].includes(name)) {
+    setForestMode(["draw", "colors"].includes(name) ? "draw" : "build");
   }
   const sheet = document.querySelector("#mobileSheet");
   const content = document.querySelector("#mobileSheetContent");
@@ -1723,10 +1725,11 @@ function openMobilePanel(name) {
   }
   const group = name === "scene" ? (forest ? "background" : "picture") : name === "stickers" && !forest ? "studioStickers" : name;
   const elements = (mobileGroups[group] || []).filter((element) => forest || !element.matches('[data-action="resetForest"]'));
+  if (forest && name === "draw") elements.push(...(mobileGroups.colors || []));
   for (const element of elements) content.append(element);
   // More includes New/Export in Forest Build as well as Color.
   if (name === "more") elements.forEach((element) => element.classList.remove("is-hidden"));
-  document.querySelector("#mobileSheetTitle").textContent = ({ draw: "Draw & color", stickers: "Stickers", scene: forest ? "Background" : "Choose a picture", move: "Move around", more: "More" })[name];
+  document.querySelector("#mobileSheetTitle").textContent = ({ draw: "Tools", colors: "Colors", stickers: "Stickers", scene: forest ? "Background" : "Choose a picture", move: "Move around", more: "More" })[name];
   document.querySelectorAll("[data-phone-panel]").forEach((button) => {
     button.setAttribute("aria-expanded", String(button.dataset.phonePanel === name));
     button.classList.toggle("is-active", button.dataset.phonePanel === (mobilePan ? "move" : forest && state.forestMode === "build" ? "stickers" : "draw"));
@@ -1740,7 +1743,7 @@ function sizePhoneCanvas() {
   const frame = document.querySelector("#canvasFrame");
   const stage = document.querySelector("#canvasStage");
   const width = stage.clientWidth - 8;
-  const height = stage.clientHeight - 8;
+  const height = stage.clientHeight - 8 - (state.projectMode === "forest" ? 0 : document.querySelector("#quickColors").offsetHeight || 0);
   if (width <= 0 || height <= 0) return;
   const forest = state.projectMode === "forest";
   const ratio = forest ? FOREST_WIDTH / FOREST_HEIGHT : 1;
@@ -1765,6 +1768,7 @@ function setupMobileWorkspace() {
   document.querySelector(".app-shell").append(sheet);
   const paths = {
     draw: '<path d="m4 17-1 4 4-1L20 7l-3-3L4 17ZM14 7l3 3"/>',
+    colors: '<circle cx="12" cy="12" r="9"/><circle cx="8" cy="9" r="1"/><circle cx="15" cy="8" r="1"/><circle cx="8" cy="15" r="1"/>',
     stickers: '<path d="M20 13V6a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v11a3 3 0 0 0 3 3h7l7-7ZM13 20v-7h7"/><path d="M7 8h.01M14 8h.01M7 12q3 3 6 0"/>',
     scene: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m3 17 6-6 4 4 3-3 5 5"/><circle cx="15" cy="8" r="1"/>',
     move: '<path d="M12 2v20M2 12h20M8 6l4-4 4 4M8 18l4 4 4-4M6 8l-4 4 4 4M18 8l4 4-4 4"/>',
@@ -1773,7 +1777,7 @@ function setupMobileWorkspace() {
   const dock = document.createElement("nav");
   dock.id = "mobileDock";
   dock.setAttribute("aria-label", "Art tools");
-  dock.innerHTML = Object.entries(paths).map(([name, path]) => `<button type="button" data-phone-panel="${name}" aria-controls="mobileSheet" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg><span>${name[0].toUpperCase() + name.slice(1)}</span></button>`).join("");
+  dock.innerHTML = Object.entries(paths).map(([name, path]) => `<button type="button" data-phone-panel="${name}" aria-controls="mobileSheet" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg><span>${name === "draw" ? "Tools" : name[0].toUpperCase() + name.slice(1)}</span></button>`).join("");
   document.querySelector(".app-shell").append(dock);
   dock.addEventListener("click", (event) => {
     const button = event.target.closest("[data-phone-panel]");
@@ -1788,7 +1792,8 @@ function setupMobileWorkspace() {
   const build = [...forestBuildTools.children];
   build.slice(6, 9).forEach((element) => element.classList.add("phone-sticker-edit"));
   mobileGroups = {
-    draw: [...document.querySelectorAll(".tool-group.draw-tools")],
+    draw: [...document.querySelectorAll(".tool-group.draw-tools:not(.palette-tools)")],
+    colors: [document.querySelector(".palette-tools")],
     studioStickers: [...document.querySelectorAll(".tool-group.draw-tools")].slice(1),
     picture: [document.querySelector(".tool-group.studio-only")],
     background: build.slice(0, 2),

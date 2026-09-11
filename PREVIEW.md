@@ -24,3 +24,9 @@ without that branch. The next successful deployment without a preview branch
 omits `/preview/`.
 
 For another round, recreate the same preview branch name from the latest main.
+
+## Shared controls pass
+
+Worlds/Studio naming and sticker pack data were already shared. This pass brings sticker preview sizing and selection-only editing controls to larger screens, keeps tablet tools in a scrollable sidebar, and separates Studio Tools and Colors on phones with persistent palette swatches. Fill hides brush size on every screen. Desktop/tablet swatches precede the palette library, and pictures follow drawing tools.
+
+Device review: check Studio and Worlds at phone portrait/landscape, iPad portrait/landscape, and desktop sizes. Verify palette selection, switching tools, resizing across the phone breakpoint with a panel open, and selected sticker size/duplicate/delete. Automated logic checks do not replace rendered device review.

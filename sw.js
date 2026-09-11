@@ -1,4 +1,4 @@
-const CACHE_NAME = "color-corner-v80";
+const CACHE_NAME = "color-corner-v81";
 const PREVIEW_URL = new URL("preview/", self.registration.scope);
 function isPreviewRequest(request) {
   const url = new URL(request.url);
@@ -10,8 +10,8 @@ const ASSETS = [
   "./index.html",
   "./styles.css",
   "./app.js",
-  "./styles.css?v=80",
-  "./app.js?v=80",
+  "./styles.css?v=81",
+  "./app.js?v=81",
   "./manifest.webmanifest",
   "./icons/icon-192.svg",
   "./icons/icon-512.svg",
