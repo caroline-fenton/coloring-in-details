@@ -29,6 +29,9 @@ const objectGrid = document.querySelector("#objectGrid");
 const objectSizeRange = document.querySelector("#objectSizeRange");
 const objectSizeOutput = document.querySelector("#objectSizeOutput");
 const canvasTip = document.querySelector("#canvasTip");
+const canvasScroller = document.querySelector("#canvasScroller");
+const forestViewportControls = document.querySelector("#forestViewportControls");
+const phoneLayout = window.matchMedia("(max-width: 600px), (max-height: 600px) and (pointer: coarse)");
 
 const studioDrawingLayer = document.createElement("canvas");
 const forestDrawingLayer = document.createElement("canvas");
@@ -155,6 +158,7 @@ let state = {
   sceneGesture: null,
   objectSizeChanging: false
 };
+let forestViewIsFit = false;
 
 const histories = {
   coloring: { undo: [], redo: [] },
@@ -177,6 +181,38 @@ function activateWorkspace(mode) {
   undoStack = histories[mode].undo;
   redoStack = histories[mode].redo;
   updateUndoRedo();
+  updateForestViewport();
+}
+
+function updateForestViewport({ center = false } = {}) {
+  const active = state.projectMode === "forest" && phoneLayout.matches;
+  document.body.classList.toggle("is-phone-forest", active);
+  document.body.classList.toggle("is-forest-mobile-fit", active && forestViewIsFit);
+  forestViewportControls?.classList.toggle("is-visible", active);
+  const fitButton = document.querySelector("[data-action='toggleForestFit']");
+  if (fitButton) {
+    fitButton.textContent = forestViewIsFit ? "Explore scene" : "Fit whole scene";
+    fitButton.setAttribute("aria-pressed", String(forestViewIsFit));
+  }
+  requestAnimationFrame(() => {
+    if (!active || forestViewIsFit) canvasScroller.scrollLeft = 0;
+    else if (center) canvasScroller.scrollLeft = Math.max(0, (canvasScroller.scrollWidth - canvasScroller.clientWidth) / 2);
+  });
+}
+
+function panForest(direction) {
+  if (!phoneLayout.matches || state.projectMode !== "forest") return;
+  if (forestViewIsFit) {
+    forestViewIsFit = false;
+    updateForestViewport({ center: true });
+    return;
+  }
+  canvasScroller.scrollBy({ left: direction * canvasScroller.clientWidth * 0.72, behavior: "smooth" });
+}
+
+function toggleForestFit() {
+  forestViewIsFit = !forestViewIsFit;
+  updateForestViewport({ center: !forestViewIsFit });
 }
 
 function activeWidth() { return drawingLayer.width; }
@@ -188,6 +224,7 @@ async function init() {
   await restoreAutosave();
   renderObjectGrid();
   activateWorkspace(state.projectMode);
+  updateForestViewport({ center: state.projectMode === "forest" });
   renderColors();
   updateSelectedControls();
   if (state.projectMode === "forest") {
@@ -371,6 +408,9 @@ function bindEvents() {
   document.querySelector("[data-action='deleteObject']").addEventListener("click", deleteSelectedObject);
   document.querySelector("[data-action='duplicateObject']").addEventListener("click", duplicateSelectedObject);
   document.querySelector("[data-action='resetForest']").addEventListener("click", resetForest);
+  document.querySelector("[data-action='panForestLeft']").addEventListener("click", () => panForest(-1));
+  document.querySelector("[data-action='panForestRight']").addEventListener("click", () => panForest(1));
+  document.querySelector("[data-action='toggleForestFit']").addEventListener("click", toggleForestFit);
   objectSizeRange.addEventListener("input", () => {
     beginObjectSizeChange();
     resizeSelectedObject();
@@ -453,6 +493,8 @@ function bindEvents() {
   canvas.addEventListener("lostpointercapture", stopDrawing);
 
   window.addEventListener("beforeunload", autosave);
+  phoneLayout.addEventListener("change", () => updateForestViewport({ center: true }));
+  window.addEventListener("orientationchange", () => setTimeout(() => updateForestViewport({ center: true }), 120));
 }
 
 function setView(view) {
@@ -472,6 +514,7 @@ function setView(view) {
       if (!undoStack.length) pushUndo();
       draw();
       updateSelectedControls();
+      updateForestViewport({ center: nextMode === "forest" });
       autosave();
     }
   }

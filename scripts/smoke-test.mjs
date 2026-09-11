@@ -78,6 +78,10 @@ const checks = [
   [js.includes("includeDrawing ? drawingCtx.getImageData") && js.includes("undoStack.length > 6"), "Undo history is bounded for iPad memory"],
   [js.includes("studioDrawing:") && js.includes("forestDrawing:"), "Both workspaces autosave independently"],
   [js.includes("indexedDB"), "durable gallery storage exists"],
+  [html.includes('id="canvasScroller"') && html.includes('data-action="toggleForestFit"'), "Phone Forest viewport controls exist"],
+  [js.includes("updateForestViewport") && js.includes("panForest"), "Phone Forest view supports fit and explicit panning"],
+  [js.includes('(max-height: 600px) and (pointer: coarse)'), "Landscape phones retain the phone workspace"],
+  [readFileSync("sw.js", "utf8").includes('color-corner-v76'), "offline cache is refreshed for responsive assets"],
   [manifest.display === "standalone", "PWA standalone display"],
   [manifest.icons.length >= 2, "PWA icons exist"]
 ];
