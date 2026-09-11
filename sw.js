@@ -1,4 +1,10 @@
 const CACHE_NAME = "color-corner-v75";
+const PREVIEW_URL = new URL("preview/", self.registration.scope);
+function isPreviewRequest(request) {
+  const url = new URL(request.url);
+  return url.origin === PREVIEW_URL.origin &&
+    (url.pathname === PREVIEW_URL.pathname.slice(0, -1) || url.pathname.startsWith(PREVIEW_URL.pathname));
+}
 const ASSETS = [
   "./",
   "./index.html",
@@ -45,12 +51,23 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(async (key) => {
+        if (key !== CACHE_NAME && key.startsWith("color-corner-")) return caches.delete(key);
+        const cache = await caches.open(key);
+        const requests = await cache.keys();
+        await Promise.all(requests.filter(isPreviewRequest).map((request) => cache.delete(request)));
+      }));
+      await self.clients.claim();
+    })()
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
+  // Preview always uses the network, including navigations and offline errors.
+  // Never fall back to the live app or cache any preview response.
+  if (isPreviewRequest(event.request)) return;
   if (event.request.method !== "GET") return;
   if (event.request.mode === "navigate" || new URL(event.request.url).pathname.endsWith("/app.js")) {
     event.respondWith(

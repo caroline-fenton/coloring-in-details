@@ -11,12 +11,13 @@ for (const asset of assets) {
 }
 
 // Paths share an origin: preview must not open the live artwork database or
-// register a worker that could delete the live app's offline caches.
+// register a preview worker. Refresh the parent worker so previously installed
+// clients receive the preview bypass even when opening this URL directly.
 let preview = readFileSync(".pages-output/preview/app.js", "utf8");
 assert.ok(preview.includes('const DB_NAME = "color-studio-db";'));
 assert.ok(preview.includes('navigator.serviceWorker.register("sw.js")'));
 preview = preview.replace('const DB_NAME = "color-studio-db";', 'const DB_NAME = "color-studio-preview-db";');
-preview = preview.replace('navigator.serviceWorker.register("sw.js")', 'Promise.resolve()');
+preview = preview.replace('navigator.serviceWorker.register("sw.js")', 'navigator.serviceWorker.register("../sw.js").then((registration) => registration.update())');
 writeFileSync(".pages-output/preview/app.js", preview);
 const html = readFileSync(".pages-output/preview/index.html", "utf8")
   .replace('<title>Color Corner</title>', '<title>Color Corner — Preview</title>')
