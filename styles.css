@@ -801,6 +801,7 @@ input[type="range"]:focus-visible::-moz-range-thumb,
 }
 
 #workspacePicker, #mobileDock, #mobileSheet { display: none; }
+.sticker-pack-preview { display: none; }
 
 .canvas-frame {
   position: relative;
@@ -1393,6 +1394,26 @@ dialog p {
   #mobileSheetClose { border: 0; width: 48px; height: 48px; border-radius: 50%; background: transparent; color: var(--ink); font-size: 28px; }
   #mobileSheetContent { padding: 4px 16px 16px; overflow: auto; display: grid; gap: 10px; min-height: 0; touch-action: pan-x pan-y; }
   #mobileSheetContent .tool-group { min-width: 0; }
+  #mobileSheetContent { grid-auto-rows: max-content; }
+  #mobileSheetContent #stickerPackTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    padding: 4px;
+  }
+  #mobileSheetContent .sticker-pack-card {
+    display: grid; gap: 6px; padding: 10px 6px;
+    min-width: 0; min-height: 100px; border-radius: 22px;
+    font-size: 13px; line-height: 1.25;
+  }
+  #mobileSheetContent .sticker-pack-preview {
+    display: flex; align-items: center; justify-content: center; height: 48px;
+  }
+  .sticker-pack-preview img { width: 33%; max-width: 48px; height: 48px; object-fit: contain; }
+  body:not(.has-selected-sticker) #mobileSheetContent .phone-sticker-edit { display: none; }
+  #mobileSheetContent .phone-sticker-edit.slider-row {
+    margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line);
+  }
   #mobileSheetContent .color-grid {
     /* Reserve space for the selected swatch's 3px outline + 3px offset. */
     flex-wrap: wrap;

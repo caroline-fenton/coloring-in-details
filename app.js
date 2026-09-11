@@ -257,7 +257,11 @@ function renderControls() {
       <span class="brush-label" aria-hidden="true">${brush.label}</span>
     </button>
   `).join("");
-  stickerPackTabs.innerHTML = stickerPacks.map((pack) => `<button class="choice-button" type="button" data-sticker-pack="${pack.id}">${pack.label}</button>`).join("");
+  stickerPackTabs.innerHTML = stickerPacks.map((pack) => `
+    <button class="choice-button sticker-pack-card" type="button" data-sticker-pack="${pack.id}" aria-label="${pack.label}">
+      <span class="sticker-pack-preview" aria-hidden="true">${forestObjects.filter((object) => object.pack === pack.id && object.src).slice(0, 3).map((object) => `<img src="${object.src}" alt="" />`).join("")}</span>
+      <span>${pack.label}</span>
+    </button>`).join("");
   backgroundTabs.innerHTML = backgroundThemes.map((theme) => `<button class="choice-button" type="button" data-background-theme="${theme.id}">${theme.label}</button>`).join("");
   renderObjectGrid();
   paletteTabs.innerHTML = palettes.map((palette) => `
@@ -332,11 +336,12 @@ function updateForestControls() {
     ? "Tap an object, then drag it into your scene."
     : "Draw, color, and add stickers over your finished forest.";
   const selected = selectedSceneObject();
+  document.body.classList.toggle("has-selected-sticker", Boolean(selected));
   document.querySelectorAll("[data-object]").forEach((button) => button.classList.toggle("is-active", button.dataset.object === selected?.type));
   document.querySelectorAll("[data-action='deleteObject'], [data-action='duplicateObject']").forEach((button) => { button.disabled = !selected; });
   objectSizeRange.disabled = !selected;
   if (selected) objectSizeRange.value = String(Math.round(selected.scale * 100));
-  objectSizeOutput.value = selected ? `${Math.round(selected.scale * 100)}%` : "Pick one";
+  objectSizeOutput.value = selected ? `${Math.round(selected.scale * 100)}%` : "—";
   updateObjectSizeRange();
   canvasTip.classList.toggle("is-hidden", !building || !selected);
   canvas.setAttribute("aria-label", building ? "Forest scene builder. Drag objects to move and use the corner handle to resize." : "Artwork surface");
@@ -1779,12 +1784,13 @@ function setupMobileWorkspace() {
   });
   document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeMobilePanel(); });
   const build = [...forestBuildTools.children];
+  build.slice(6, 9).forEach((element) => element.classList.add("phone-sticker-edit"));
   mobileGroups = {
     draw: [...document.querySelectorAll(".tool-group.draw-tools")],
     studioStickers: [...document.querySelectorAll(".tool-group.draw-tools")].slice(1),
     picture: [document.querySelector(".tool-group.studio-only")],
     background: build.slice(0, 2),
-    stickers: [...build.slice(6, 9), ...build.slice(2, 6)],
+    stickers: [...build.slice(2, 6), ...build.slice(6, 9)],
     more: [document.querySelector(".tool-row"), build[9]],
     move: [forestViewportControls]
   };
