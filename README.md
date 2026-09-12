@@ -32,6 +32,10 @@ Then open `http://localhost:4183`. Color Corner uses its own local port so cache
 npm test
 ```
 
+## Development Plans
+
+- [Image performance plan](docs/image-performance-plan.md): baseline findings, format choices, first-pass results, remaining implementation steps, and iPad validation criteria.
+
 ## Deploy
 
 The GitHub Actions workflow in `.github/workflows/deploy.yml` deploys the static app to GitHub Pages on pushes to `main`. In the repository settings, set Pages to use GitHub Actions as the source.

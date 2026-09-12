@@ -1,0 +1,137 @@
+[
+  {
+    "source": "assets/coloring-pages/animal-bunny-artist.png",
+    "output": "assets/optimized/thumbnails/animal-bunny-artist.webp",
+    "sourceBytes": 1447810,
+    "outputBytes": 25418,
+    "width": 240,
+    "height": 300,
+    "sha256": "eef6f57521486ff1049226c86fd14c6be80d5c9bea5508e0a91de43592b10e01"
+  },
+  {
+    "source": "assets/coloring-pages/animal-fox-tea.png",
+    "output": "assets/optimized/thumbnails/animal-fox-tea.webp",
+    "sourceBytes": 1383564,
+    "outputBytes": 21684,
+    "width": 240,
+    "height": 300,
+    "sha256": "242dbc5235c3a9c4ff5ad35e899714b98409a1f72fae1cb411f5780ca9c953b7"
+  },
+  {
+    "source": "assets/coloring-pages/animal-hat-bunny.png",
+    "output": "assets/optimized/thumbnails/animal-hat-bunny.webp",
+    "sourceBytes": 1554821,
+    "outputBytes": 30926,
+    "width": 240,
+    "height": 320,
+    "sha256": "910e3a6ab25c6fef7ab227c132b0db4b111dc33dabd4620e017a8d58d8776a94"
+  },
+  {
+    "source": "assets/coloring-pages/animal-hat-cat.png",
+    "output": "assets/optimized/thumbnails/animal-hat-cat.webp",
+    "sourceBytes": 1431346,
+    "outputBytes": 22408,
+    "width": 240,
+    "height": 300,
+    "sha256": "b188a6cc452d880ca911b7c467e28b126789129cef3c006051d69eead3d94cbf"
+  },
+  {
+    "source": "assets/coloring-pages/animal-magic-kitten.png",
+    "output": "assets/optimized/thumbnails/animal-magic-kitten.webp",
+    "sourceBytes": 1309363,
+    "outputBytes": 20502,
+    "width": 240,
+    "height": 300,
+    "sha256": "c0da2000469288484f89a756348d3bf4a5c5ef43dab532fd8ffca1e69c5ac8ed"
+  },
+  {
+    "source": "assets/coloring-pages/anime-artist.png",
+    "output": "assets/optimized/thumbnails/anime-artist.webp",
+    "sourceBytes": 1347177,
+    "outputBytes": 24934,
+    "width": 239,
+    "height": 320,
+    "sha256": "293fa98483c4bebcba2f0b801c179a28befcf12702f4c3d069352d4a45bcc77a"
+  },
+  {
+    "source": "assets/coloring-pages/anime-dragon.png",
+    "output": "assets/optimized/thumbnails/anime-dragon.webp",
+    "sourceBytes": 1481317,
+    "outputBytes": 29114,
+    "width": 239,
+    "height": 320,
+    "sha256": "94095861f410579142475a662a649ad8e36d2749419163e6e0476589df65e6e3"
+  },
+  {
+    "source": "assets/coloring-pages/anime-kitten.png",
+    "output": "assets/optimized/thumbnails/anime-kitten.webp",
+    "sourceBytes": 1392907,
+    "outputBytes": 24492,
+    "width": 240,
+    "height": 320,
+    "sha256": "4fdd29b615164a204eb5f33157c786c70cef91e21419085acda897d2448e0a37"
+  },
+  {
+    "source": "assets/coloring-pages/anime-moon-puppy.png",
+    "output": "assets/optimized/thumbnails/anime-moon-puppy.webp",
+    "sourceBytes": 1215211,
+    "outputBytes": 21174,
+    "width": 240,
+    "height": 320,
+    "sha256": "e5505e974dc12e541f95c344445902b155797c7af817765d6ea046e235b1d0cc"
+  },
+  {
+    "source": "assets/mythical/background-crystal-dream.png",
+    "output": "assets/optimized/backgrounds/background-crystal-dream.webp",
+    "sourceBytes": 2506853,
+    "outputBytes": 349156,
+    "width": 1586,
+    "height": 992,
+    "sha256": "601ac85762755b9ba85d8b8fedb153ad1e1b19ee7183430b33df0269d1b09d51"
+  },
+  {
+    "source": "assets/mythical/background-enchanted.png",
+    "output": "assets/optimized/backgrounds/background-enchanted.webp",
+    "sourceBytes": 2333208,
+    "outputBytes": 300718,
+    "width": 1586,
+    "height": 992,
+    "sha256": "0de333fd165de62148c12cb76fddd9de956018a661265691b67df03bf1299d52"
+  },
+  {
+    "source": "assets/mythical/background-fairy-glow.png",
+    "output": "assets/optimized/backgrounds/background-fairy-glow.webp",
+    "sourceBytes": 2369209,
+    "outputBytes": 292996,
+    "width": 1586,
+    "height": 992,
+    "sha256": "5d8294898e10daf93a2a0e078d63abd6e5539bd03da70ce7bbb0ef085e3eee29"
+  },
+  {
+    "source": "assets/mythical/background-moonlight.png",
+    "output": "assets/optimized/backgrounds/background-moonlight.webp",
+    "sourceBytes": 2498256,
+    "outputBytes": 310692,
+    "width": 1586,
+    "height": 992,
+    "sha256": "7aa7db951b415967f91c3691f35a94e7ddf109fc8a81f1785f47fa929bb1fb6b"
+  },
+  {
+    "source": "assets/mythical/background-mushroom-magic.png",
+    "output": "assets/optimized/backgrounds/background-mushroom-magic.webp",
+    "sourceBytes": 2518157,
+    "outputBytes": 350462,
+    "width": 1586,
+    "height": 992,
+    "sha256": "89be911ad617adf8897748fdd9e5dc63c795cdbec6c4a1dc8e61abcbfd608ae8"
+  },
+  {
+    "source": "assets/forest/enchanted-background-landscape.png",
+    "output": "assets/optimized/backgrounds/enchanted-background-landscape.webp",
+    "sourceBytes": 3164294,
+    "outputBytes": 575706,
+    "width": 1586,
+    "height": 992,
+    "sha256": "e4afa241098b0ab87dac03b0c2360d68db089db2a4acd43631d5a9310bd30b86"
+  }
+]

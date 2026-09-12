@@ -70,23 +70,42 @@ const forestObjects = [
   ["jewel-dragon", "Jewel Dragon", 0, 1, "mythical-creatures"], ["frost-dragon", "Frost Dragon", 1, 1, "mythical-creatures"],
   ["tiny-fairy", "Tiny Fairy", 2, 1, "mythical-creatures", "assets/mythical/tiny-fairy-v2.png"], ["mushroom-sprite", "Mushroom Sprite", 3, 1, "mythical-creatures"]
 ].map(([id, label, column, row, pack, src]) => ({ id, label, column, row, pack, src }));
-const spriteImages = Object.fromEntries(stickerPacks.map((pack) => {
+// Canvas assets are requested only when a scene uses them.
+const sceneImages = new Map();
+window.addEventListener("online", () => {
+  for (const [src, image] of sceneImages) {
+    if (image.complete && !image.naturalWidth) sceneImages.delete(src);
+  }
+  renderScene();
+  draw();
+});
+let imageRedrawPending = false;
+function sceneImage(src) {
+  if (sceneImages.has(src)) return sceneImages.get(src);
   const image = new Image();
-  image.addEventListener("load", () => { renderScene(); draw(); });
-  image.src = pack.sprite;
-  return [pack.id, image];
-}));
-const objectImages = Object.fromEntries(forestObjects.filter((object) => object.src).map((object) => {
-  const image = new Image(); image.addEventListener("load", () => { renderScene(); draw(); }); image.src = object.src; return [object.id, image];
-}));
+  image.addEventListener("load", () => {
+    if (imageRedrawPending) return;
+    imageRedrawPending = true;
+    requestAnimationFrame(() => {
+      imageRedrawPending = false;
+      renderScene();
+      draw();
+    });
+  });
+  image.addEventListener("error", () => {
+    if (sceneImages.get(src) === image) sceneImages.delete(src);
+    showToast("Could not load scene artwork. Please try again.");
+  });
+  sceneImages.set(src, image);
+  image.src = src;
+  return image;
+}
 const backgroundThemes = [
   ["original-forest", "Original Forest", "assets/forest/enchanted-background-landscape.png"],
   ["moonlight", "Moonlight"], ["enchanted", "Enchanted"], ["fairy-glow", "Fairy Glow"],
   ["mushroom-magic", "Mushroom Magic"], ["crystal-dream", "Crystal Dream"]
-].map(([id, label, src]) => ({ id, label, src: src || `assets/mythical/background-${id}.png` }));
-const backgroundImages = Object.fromEntries(backgroundThemes.map((theme) => {
-  const image = new Image(); image.addEventListener("load", () => { renderScene(); draw(); }); image.src = theme.src; return [theme.id, image];
-}));
+].map(([id, label, src]) => ({ id, label, src: `assets/optimized/backgrounds/${src ? "enchanted-background-landscape" : `background-${id}`}.webp` }));
+
 
 const brushes = [
   { id: "marker", label: "Marker", icon: "✦", composite: "source-over", alpha: 0.88 },
@@ -250,7 +269,7 @@ async function init() {
 function renderControls() {
   pictureStrip.innerHTML = pages.map((page) => `
     <button class="picture-button" type="button" data-page="${page.id}" style="--picture-accent:${page.accent}" aria-label="${page.label}">
-      <img src="${page.src}" alt="" aria-hidden="true" loading="lazy" />
+      <img src="assets/optimized/thumbnails/${page.src.split("/").pop().replace(".png", ".webp")}" alt="" aria-hidden="true" width="240" height="320" loading="lazy" decoding="async" />
     </button>
   `).join("");
   brushGrid.innerHTML = brushes.map((brush) => `
@@ -908,7 +927,8 @@ function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 function renderScene() {
   sceneCtx.clearRect(0, 0, FOREST_WIDTH, FOREST_HEIGHT);
   if (state.projectMode !== "forest") return;
-  const background = backgroundImages[state.backgroundTheme] || backgroundImages.enchanted;
+  const theme = backgroundThemes.find((item) => item.id === state.backgroundTheme) || backgroundThemes[0];
+  const background = sceneImage(theme.src);
   if (background.complete && background.naturalWidth) {
     sceneCtx.drawImage(background, 0, 0, FOREST_WIDTH, FOREST_HEIGHT);
     const vignette = sceneCtx.createRadialGradient(800, 720, 260, 800, 720, 1120);
@@ -953,8 +973,8 @@ function drawSceneObject(object) {
   const c = sceneCtx;
   const sprite = forestObjects.find((item) => item.id === object.type);
   c.save(); c.translate(object.x, object.y); c.rotate(object.rotation); c.lineJoin = "round"; c.lineCap = "round"; c.lineWidth = Math.max(8, s * .035); c.strokeStyle = "#55445f";
-  const spriteImage = sprite ? spriteImages[sprite.pack] : null;
-  const objectImage = objectImages[object.type];
+  const objectImage = sprite?.src ? sceneImage(sprite.src) : null;
+  const spriteImage = sprite && !sprite.src ? sceneImage(stickerPacks.find((pack) => pack.id === sprite.pack).sprite) : null;
   if (objectImage?.complete && objectImage.naturalWidth) {
     c.drawImage(objectImage, -s / 2, -s * .59, s, s * 1.18);
     c.restore();
@@ -1419,7 +1439,31 @@ function compositeDataUrl(scale = 1) {
   return output.toDataURL("image/png");
 }
 
+async function ensureSceneReady() {
+  if (state.projectMode !== "forest") return true;
+  const sceneKey = JSON.stringify([state.projectMode, state.backgroundTheme, state.sceneObjects]);
+  renderScene();
+  const theme = backgroundThemes.find((item) => item.id === state.backgroundTheme) || backgroundThemes[0];
+  const sources = [theme.src, ...state.sceneObjects.map((object) => {
+    const item = forestObjects.find((entry) => entry.id === object.type);
+    return item?.src || (item && stickerPacks.find((pack) => pack.id === item.pack).sprite);
+  }).filter(Boolean)];
+  try {
+    await Promise.all([...new Set(sources)].map((src) => sceneImage(src).decode()));
+    if (sceneKey !== JSON.stringify([state.projectMode, state.backgroundTheme, state.sceneObjects])) {
+      showToast("The scene changed. Please save or export again.");
+      return false;
+    }
+    renderScene();
+    return true;
+  } catch {
+    showToast("Scene artwork is still unavailable. Please try again when online.");
+    return false;
+  }
+}
+
 async function saveArtwork() {
+  if (!await ensureSceneReady()) return;
   const artwork = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     pageId: state.pageId,
@@ -1444,7 +1488,7 @@ async function renderGallery() {
   emptyGallery.classList.toggle("is-hidden", artworks.length > 0);
   galleryGrid.innerHTML = artworks.map((art) => `
     <article class="gallery-card${art.projectMode === "forest" ? " is-forest" : ""}" data-art="${art.id}">
-      <img src="${art.preview}" alt="Saved artwork" />
+      <img src="${art.preview}" alt="Saved artwork" loading="lazy" decoding="async" />
       <footer>
         <time datetime="${art.createdAt}">${formatDate(art.createdAt)}</time>
         <div>
@@ -1512,7 +1556,8 @@ function deleteArtwork(id) {
   });
 }
 
-function downloadArtwork() {
+async function downloadArtwork() {
+  if (!await ensureSceneReady()) return;
   const link = document.createElement("a");
   link.download = `color-studio-${new Date().toISOString().slice(0, 10)}.png`;
   link.href = compositeDataUrl(1);

@@ -1,4 +1,4 @@
-const CACHE_NAME = "color-corner-v80";
+const CACHE_NAME = "color-corner-v81";
 const PREVIEW_URL = new URL("preview/", self.registration.scope);
 function isPreviewRequest(request) {
   const url = new URL(request.url);
@@ -6,16 +6,24 @@ function isPreviewRequest(request) {
     (url.pathname === PREVIEW_URL.pathname.slice(0, -1) || url.pathname.startsWith(PREVIEW_URL.pathname));
 }
 const ASSETS = [
+  "./assets/optimized/thumbnails/anime-moon-puppy.webp",
+  "./assets/optimized/thumbnails/anime-kitten.webp",
+  "./assets/optimized/thumbnails/anime-dragon.webp",
+  "./assets/optimized/thumbnails/anime-artist.webp",
+  "./assets/optimized/thumbnails/animal-magic-kitten.webp",
+  "./assets/optimized/thumbnails/animal-hat-cat.webp",
+  "./assets/optimized/thumbnails/animal-hat-bunny.webp",
+  "./assets/optimized/thumbnails/animal-fox-tea.webp",
+  "./assets/optimized/thumbnails/animal-bunny-artist.webp",
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
-  "./styles.css?v=80",
-  "./app.js?v=80",
+  "./styles.css?v=81",
+  "./app.js?v=81",
   "./manifest.webmanifest",
   "./icons/icon-192.svg",
   "./icons/icon-512.svg",
-  "./assets/forest/forest-sprites-clean.png",
   "./assets/forest/stickers-v2/star-fairy.png",
   "./assets/forest/stickers-v2/flower-fairy.png",
   "./assets/forest/stickers-v2/magic-mushrooms.png",
@@ -24,17 +32,16 @@ const ASSETS = [
   "./assets/forest/stickers-v2/lily-frog.png",
   "./assets/forest/stickers-v2/moon-ferns.png",
   "./assets/forest/stickers-v2/glow-ferns.png",
-  "./assets/forest/enchanted-background.png",
-  "./assets/forest/enchanted-background-landscape.png",
+  "./assets/optimized/backgrounds/enchanted-background-landscape.webp",
   "./assets/mythical/mythical-creatures-sprites-v3.png",
   "./assets/mythical/moon-unicorn-v2.png",
   "./assets/mythical/tiny-fairy-v2.png",
   "./assets/mythical/aurora-phoenix.png",
-  "./assets/mythical/background-moonlight.png",
-  "./assets/mythical/background-enchanted.png",
-  "./assets/mythical/background-fairy-glow.png",
-  "./assets/mythical/background-mushroom-magic.png",
-  "./assets/mythical/background-crystal-dream.png",
+  "./assets/optimized/backgrounds/background-moonlight.webp",
+  "./assets/optimized/backgrounds/background-enchanted.webp",
+  "./assets/optimized/backgrounds/background-fairy-glow.webp",
+  "./assets/optimized/backgrounds/background-mushroom-magic.webp",
+  "./assets/optimized/backgrounds/background-crystal-dream.webp",
   "./assets/coloring-pages/anime-kitten.png",
   "./assets/coloring-pages/anime-artist.png",
   "./assets/coloring-pages/anime-moon-puppy.png",
