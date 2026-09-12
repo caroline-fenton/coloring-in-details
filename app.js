@@ -92,7 +92,10 @@ function sceneImage(src) {
       draw();
     });
   });
-  image.addEventListener("error", () => showToast("Could not load scene artwork. Try again when online."));
+  image.addEventListener("error", () => {
+    if (sceneImages.get(src) === image) sceneImages.delete(src);
+    showToast("Could not load scene artwork. Please try again.");
+  });
   sceneImages.set(src, image);
   image.src = src;
   return image;
