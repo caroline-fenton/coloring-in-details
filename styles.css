@@ -48,6 +48,8 @@ button {
 
 .app-shell {
   display: grid;
+  /* Canvas and swatch intrinsic widths must not widen the page column. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   width: 100vw;
   height: 100dvh;
@@ -218,6 +220,7 @@ button {
 }
 
 main {
+  min-width: 0;
   min-height: 0;
 }
 
@@ -1483,3 +1486,6 @@ body:not(.has-selected-sticker) .phone-sticker-edit { display: none; }
     overflow-x: auto; margin-top: 4px; background: var(--paper); border-radius: 22px;
   }
 }
+
+/* Let nested grid/flex children shrink within the workspace column. */
+.studio-view, .canvas-stage, .canvas-scroller, .quick-colors { min-width: 0; }
