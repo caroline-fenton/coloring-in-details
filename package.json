@@ -5,7 +5,7 @@
   "description": "An iPad-first drawing and coloring PWA for kids.",
   "scripts": {
     "start": "python3 -m http.server 4183",
-    "test": "node scripts/smoke-test.mjs && node scripts/mobile-workspace-test.mjs"
+    "test": "node scripts/smoke-test.mjs && node scripts/mobile-workspace-test.mjs && node scripts/image-performance-test.mjs"
   },
   "keywords": [
     "coloring",
