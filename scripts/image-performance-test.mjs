@@ -9,7 +9,7 @@ for (const asset of manifest) {
   assert(asset.outputBytes < asset.sourceBytes);
 }
 const worker = readFileSync('sw.js', 'utf8');
-for (const [, file] of worker.matchAll(/"\.\/([^"\n]+)"/g)) statSync(file);
+for (const [, file] of worker.matchAll(/"\.\/([^"\n]+)"/g)) statSync(file.split("?")[0]);
 for (const asset of manifest) assert(worker.includes(asset.output));
 
 const requests = [], frames = [], events = {};
