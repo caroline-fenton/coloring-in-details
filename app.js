@@ -715,7 +715,7 @@ function startDrawing(event) {
   state.drawing = true;
   state.lastPoint = point;
   if (state.brush === "fill") {
-    pushUndo();
+    pushUndo(worldEditBackup?.snapshot);
     floodFill(point.x, point.y, state.color);
     state.drawing = false;
     state.dirty = true;
@@ -725,7 +725,7 @@ function startDrawing(event) {
     updateUndoRedo();
     return;
   }
-  pushUndo();
+  pushUndo(worldEditBackup?.snapshot);
   paintDab(point, getPressure(event));
   draw();
 }
@@ -1363,8 +1363,9 @@ function hexToRgba(hex) {
   ];
 }
 
-function pushUndo() {
-  undoStack.push(captureSnapshot());
+function pushUndo(snapshot = captureSnapshot()) {
+  // Phone drawing shares its immutable pre-edit pixels with gesture rollback.
+  undoStack.push(snapshot);
   if (undoStack.length > 6) undoStack.shift();
   updateUndoRedo();
 }

@@ -81,7 +81,7 @@ const checks = [
   [html.includes('id="canvasScroller"') && html.includes('data-action="toggleForestFit"'), "Phone Forest viewport controls exist"],
   [js.includes("updateForestViewport") && js.includes("panForest"), "Phone Forest view supports fit and explicit panning"],
   [js.includes('(max-height: 600px) and (pointer: coarse)'), "Landscape phones retain the phone workspace"],
-  [readFileSync("sw.js", "utf8").includes('color-corner-v83'), "offline cache is refreshed for responsive assets"],
+  [readFileSync("sw.js", "utf8").includes('color-corner-v84'), "offline cache is refreshed for responsive assets"],
   [manifest.display === "standalone", "PWA standalone display"],
   [manifest.icons.length >= 2, "PWA icons exist"]
 ];

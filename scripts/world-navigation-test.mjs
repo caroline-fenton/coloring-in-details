@@ -61,3 +61,37 @@ c.state.projectMode='coloring'; const studio=event(6); c.handleWorldPointerDown(
 assert.equal(studio.blocked,false,'Studio keeps its existing input behavior');
 assert.match(source,/function autosave\(\) \{\s*if \(worldEditBackup\) return/);
 console.log('Worlds pinch, two-axis pan, edit/history rollback, cancellation, Move and Studio isolation passed');
+
+// Run the real drawing entry point: both fill and strokes reuse rollback pixels.
+vm.runInContext(source.slice(source.indexOf('function pushUndo('), source.indexOf('function captureSnapshot(')), c);
+vm.runInContext(source.slice(source.indexOf('function startDrawing('), source.indexOf('function continueDrawing(')), c);
+c.getCanvasPoint = () => ({ x: 10, y: 10 });
+c.getPressure = () => 1;
+c.paintDab = () => { pixels = 'dab'; };
+c.floodFill = () => { pixels = 'fill'; };
+let reads = 0;
+c.captureSnapshot = () => { reads++; return { pixels, objects: structuredClone(c.state.sceneObjects) }; };
+c.state.projectMode = 'forest';
+c.state.forestMode = 'draw';
+run('mobilePan = false');
+for (const brush of ['marker', 'fill']) {
+  c.state.brush = brush;
+  pixels = 'before';
+  const down = event(10);
+  const beforeReads = reads;
+  c.handleWorldPointerDown(down);
+  const backup = run('worldEditBackup.snapshot');
+  c.startDrawing(down);
+  assert.equal(reads - beforeReads, 1, `${brush} reads canvas only once`);
+  assert.equal(c.undoStack.at(-1), backup, 'Undo and cancellation share the same snapshot');
+  assert.equal(backup.pixels, 'before', 'Drawing does not mutate the snapshot');
+  c.handleWorldPointerDown(event(11, 200));
+  assert.equal(pixels, 'before', `${brush} still rolls back when a second finger joins`);
+  c.handleWorldPointerEnd(event(11, 200, 100, 'pointerup'));
+  c.handleWorldPointerEnd(event(10, 100, 100, 'pointerup'));
+}
+c.state.projectMode = 'coloring';
+const beforeReads = reads;
+c.startDrawing(event(12));
+assert.equal(reads - beforeReads, 1, 'Studio still creates its own undo snapshot');
+console.log('Drawing and fill share one immutable rollback/undo snapshot; Studio keeps normal undo');
