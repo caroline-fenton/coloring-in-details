@@ -21,7 +21,7 @@ const context = vm.createContext({
     body: { classList: { contains: () => false } }
   },
   state: { projectMode: "forest", forestMode: "build" },
-  phoneLayout: { matches: true }, forestViewIsFit: false,
+  phoneLayout: { matches: true }, forestViewIsFit: false, forestZoom: 2,
   FOREST_WIDTH: 1920, FOREST_HEIGHT: 1200,
   setForestMode(mode) { context.state.forestMode = mode; },
   updateSelectedControls() {},
@@ -58,8 +58,8 @@ node("#canvasStage").clientWidth = 374;
 node("#canvasStage").clientHeight = 600;
 context.state.projectMode = "forest";
 run("sizePhoneCanvas()");
-assert.equal(node("#canvasFrame").style.width, "947.2px");
-assert.equal(node("#canvasFrame").style.height, "592px");
+assert.equal(node("#canvasFrame").style.width, "732px");
+assert.equal(node("#canvasFrame").style.height, "457.5px");
 context.forestViewIsFit = true;
 run("sizePhoneCanvas()");
 assert.equal(node("#canvasFrame").style.width, "366px");

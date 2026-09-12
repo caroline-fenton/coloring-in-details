@@ -1489,3 +1489,12 @@ body:not(.has-selected-sticker) .phone-sticker-edit { display: none; }
 
 /* Let nested grid/flex children shrink within the workspace column. */
 .studio-view, .canvas-stage, .canvas-scroller, .quick-colors { min-width: 0; }
+
+.world-fit-shortcut { display: none; }
+@media (max-width: 600px), (max-height: 600px) and (pointer: coarse) {
+  .is-phone-forest .canvas-scroller { align-items: flex-start; touch-action: none; }
+  .is-phone-forest .world-fit-shortcut {
+    display: block; position: absolute; right: 12px; top: 12px; z-index: 3;
+    min-height: 44px;
+  }
+}

@@ -177,7 +177,8 @@ let state = {
   sceneGesture: null,
   objectSizeChanging: false
 };
-let forestViewIsFit = false;
+let forestViewIsFit = true;
+let forestZoom = 1;
 
 const histories = {
   coloring: { undo: [], redo: [] },
@@ -217,7 +218,7 @@ function updateForestViewport({ center = false } = {}) {
   }
   requestAnimationFrame(() => {
     sizePhoneCanvas();
-    if (!active || forestViewIsFit) canvasScroller.scrollLeft = 0;
+    if (!active || forestViewIsFit) { canvasScroller.scrollLeft = 0; canvasScroller.scrollTop = 0; }
     else if (center) canvasScroller.scrollLeft = Math.max(0, (canvasScroller.scrollWidth - canvasScroller.clientWidth) / 2);
   });
 }
@@ -226,6 +227,7 @@ function panForest(direction) {
   if (!phoneLayout.matches || state.projectMode !== "forest") return;
   if (forestViewIsFit) {
     forestViewIsFit = false;
+    forestZoom = 2;
     updateForestViewport({ center: true });
     return;
   }
@@ -234,6 +236,7 @@ function panForest(direction) {
 
 function toggleForestFit() {
   forestViewIsFit = !forestViewIsFit;
+  forestZoom = forestViewIsFit ? 1 : 2;
   updateForestViewport({ center: !forestViewIsFit });
 }
 
@@ -535,6 +538,10 @@ function bindEvents() {
 }
 
 function setView(view) {
+  cancelWorldEdit();
+  worldPointers.clear();
+  worldNavigating = false;
+  panGesture = null;
   closeMobilePanel();
   mobilePan = false;
   document.body.classList.toggle("is-gallery", view === "gallery");
@@ -1567,6 +1574,7 @@ async function downloadArtwork() {
 }
 
 function autosave() {
+  if (worldEditBackup) return; // A second finger can still cancel this edit.
   dbPut(META_STORE, {
     key: AUTOSAVE_KEY,
     pageId: state.pageId,
@@ -1739,6 +1747,102 @@ let mobileGroups = {};
 let mobileHomes = [];
 let mobilePan = false;
 let panGesture = null;
+const worldPointers = new Map();
+let worldEditBackup = null;
+let worldNavigating = false;
+
+function cancelWorldEdit() {
+  if (!worldEditBackup) return;
+  const backup = worldEditBackup;
+  worldEditBackup = null;
+  state.drawing = false;
+  state.lastPoint = null;
+  state.sceneGesture = null;
+  restoreSnapshot(backup.snapshot);
+  undoStack.splice(0, undoStack.length, ...backup.undo);
+  redoStack.splice(0, redoStack.length, ...backup.redo);
+  state.selectedObjectId = backup.selected;
+  state.dirty = backup.dirty;
+  updateUndoRedo();
+  updateForestControls();
+  draw();
+}
+
+function worldPointerGeometry() {
+  const points = [...worldPointers.values()].slice(0, 2);
+  const a = points[0], b = points[1] || a;
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2,
+    distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) };
+}
+
+function beginWorldNavigation() {
+  cancelWorldEdit();
+  worldNavigating = true;
+  const point = worldPointerGeometry();
+  const rect = canvas.getBoundingClientRect();
+  panGesture = { ...point, zoom: forestZoom,
+    u: (point.x - rect.left) / rect.width, v: (point.y - rect.top) / rect.height };
+}
+
+function handleWorldPointerDown(event) {
+  if (!phoneLayout.matches || state.projectMode !== "forest") return;
+  closeMobilePanel();
+  if (event.pointerType !== "touch" && !mobilePan) {
+    if (worldPointers.size) { event.preventDefault(); event.stopImmediatePropagation(); }
+    return;
+  }
+  event.preventDefault();
+  canvas.setPointerCapture(event.pointerId);
+  worldPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (worldPointers.size > 1 || mobilePan || worldNavigating) {
+    event.stopImmediatePropagation();
+    beginWorldNavigation();
+  } else {
+    worldEditBackup = { snapshot: captureSnapshot(), undo: [...undoStack], redo: [...redoStack],
+      selected: state.selectedObjectId, dirty: state.dirty };
+  }
+}
+
+function handleWorldPointerMove(event) {
+  if (!worldPointers.has(event.pointerId)) return;
+  worldPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (!worldNavigating) return;
+  event.stopImmediatePropagation();
+  event.preventDefault();
+  const point = worldPointerGeometry();
+  forestZoom = clamp(panGesture.zoom * (worldPointers.size > 1 ? point.distance / panGesture.distance : 1), 1, 5);
+  forestViewIsFit = forestZoom === 1;
+  sizePhoneCanvas();
+  // Anchor the scene point under the fingers even when centered margins change.
+  const rect = canvas.getBoundingClientRect();
+  canvasScroller.scrollLeft += rect.left + panGesture.u * rect.width - point.x;
+  canvasScroller.scrollTop += rect.top + panGesture.v * rect.height - point.y;
+}
+
+function handleWorldPointerEnd(event) {
+  if (!worldPointers.has(event.pointerId)) return;
+  event.stopImmediatePropagation();
+  const cancelled = event.type !== "pointerup";
+  worldPointers.delete(event.pointerId);
+  if (cancelled) cancelWorldEdit();
+  if (!worldNavigating && !cancelled) {
+    stopDrawing();
+    worldEditBackup = null;
+    autosave();
+  }
+  if (worldPointers.size) beginWorldNavigation();
+  else {
+    worldNavigating = false;
+    panGesture = null;
+    updateForestViewport();
+  }
+}
+
+function fitWorldScene() {
+  forestZoom = 1;
+  forestViewIsFit = true;
+  updateForestViewport();
+}
 let phoneResizeObserver;
 
 function restoreMobileControls() {
@@ -1793,7 +1897,7 @@ function sizePhoneCanvas() {
   const forest = state.projectMode === "forest";
   const ratio = forest ? FOREST_WIDTH / FOREST_HEIGHT : 1;
   const fitWidth = Math.min(width, height * ratio);
-  const displayWidth = forest && !forestViewIsFit ? Math.max(fitWidth, height * ratio) : fitWidth;
+  const displayWidth = forest && !forestViewIsFit ? fitWidth * forestZoom : fitWidth;
   frame.style.width = `${displayWidth}px`;
   frame.style.height = `${displayWidth / ratio}px`;
 }
@@ -1847,7 +1951,7 @@ function setupMobileWorkspace() {
     move: [forestViewportControls]
   };
   const moveHint = document.createElement("p");
-  moveHint.textContent = "Drag the scene to look around. Choose Draw or Stickers when you’re ready to create.";
+  moveHint.textContent = "Drag to look around in Move mode. With any tool, use two fingers to move and pinch to zoom. Choose Tools or Stickers to create.";
   forestViewportControls.prepend(moveHint);
   for (const element of new Set(Object.values(mobileGroups).flat())) {
     const marker = document.createComment("phone-control-home");
@@ -1863,26 +1967,19 @@ function setupMobileWorkspace() {
       }
     }
   });
-  // Move mode captures one pointer before the drawing handlers see it.
-  canvas.addEventListener("pointerdown", (event) => {
-    if (!phoneLayout.matches) return;
-    closeMobilePanel();
-    if (!mobilePan) return;
-    event.stopImmediatePropagation(); event.preventDefault();
-    if (panGesture) return;
-    canvas.setPointerCapture(event.pointerId);
-    panGesture = { id: event.pointerId, x: event.clientX, scroll: canvasScroller.scrollLeft };
-  }, true);
-  canvas.addEventListener("pointermove", (event) => {
-    if (!panGesture || event.pointerId !== panGesture.id) return;
-    event.stopImmediatePropagation(); event.preventDefault();
-    canvasScroller.scrollLeft = panGesture.scroll + panGesture.x - event.clientX;
-  }, true);
-  for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) canvas.addEventListener(type, (event) => {
-    if (panGesture?.id !== event.pointerId) return;
-    event.stopImmediatePropagation(); panGesture = null;
-  }, true);
+  canvasScroller.addEventListener("pointerdown", handleWorldPointerDown, true);
+  canvasScroller.addEventListener("pointermove", handleWorldPointerMove, true);
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    canvasScroller.addEventListener(type, handleWorldPointerEnd, true);
+  }
+  const fit = document.createElement("button");
+  fit.type = "button";
+  fit.className = "world-fit-shortcut soft-button";
+  fit.textContent = "Fit scene";
+  fit.addEventListener("click", fitWorldScene);
+  document.querySelector("#canvasStage").append(fit);
   const refresh = () => {
+    cancelWorldEdit(); worldPointers.clear(); worldNavigating = false;
     closeMobilePanel(); mobilePan = false; panGesture = null;
     updateForestControls();
     const frame = document.querySelector("#canvasFrame");
