@@ -1380,7 +1380,8 @@ dialog p {
   #mobileDock svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   #mobileDock button.is-active { background: #efe2f8; }
   #mobileDock button:disabled { opacity: .4; }
-  body:not(.is-forest-workspace) #mobileDock [data-phone-panel="stickers"] { display: none; }
+  body:not(.is-forest-workspace) #mobileDock [data-phone-panel="stickers"],
+  body:not(.is-forest-workspace) #mobileDock [data-phone-panel="move"] { display: none; }
   #mobileDock button[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--lilac); }
   #mobileSheet {
     display: flex; flex-direction: column; position: fixed;
@@ -1446,4 +1447,39 @@ dialog p {
 @media (max-height: 600px) and (orientation: landscape) and (pointer: coarse) {
   #mobileDock { max-width: 440px; width: 100%; justify-self: center; }
   #mobileSheet { max-width: 440px; left: auto; max-height: calc(100dvh - 104px); }
+}
+
+/* Shared controls, with touch targets on tablets as well as phones. */
+.is-fill-tool .brush-size-tools { display: none !important; }
+.tool-panel > .picture-tools { order: 2; }
+.tool-panel > .tool-row { order: 3; }
+#stickerPackTabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sticker-pack-card { display: grid; gap: 8px; min-width: 0; padding: 10px 6px; }
+.sticker-pack-preview { display: flex; align-items: center; justify-content: center; height: 48px; }
+.sticker-pack-preview img { width: 33%; max-width: 48px; height: 48px; object-fit: contain; }
+body:not(.has-selected-sticker) .phone-sticker-edit { display: none; }
+.color-grid { display: flex; flex-wrap: wrap; gap: 12px; padding: 8px; }
+.color-swatch { flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; }
+.quick-colors { display: none; }
+@media (min-width: 601px) and (min-height: 601px) {
+  html, body { height: 100%; overflow: hidden; }
+  .app-shell { height: 100dvh; min-height: 0; }
+  .studio-view, .is-forest-workspace .studio-view {
+    grid-template-columns: minmax(230px, 280px) minmax(0, 1fr); height: 100%; min-height: 0;
+  }
+  .tool-panel, .is-forest-workspace .tool-panel { display: flex; flex-direction: column; order: 0; max-height: none; }
+  .canvas-stage, .is-forest-workspace .canvas-stage { order: 0; min-height: 0; }
+  .palette-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .brush-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .brush-button { min-height: 48px; }
+  .gallery-view { height: 100%; overflow: auto; }
+}
+@media (max-width: 600px), (max-height: 600px) and (pointer: coarse) {
+  .is-forest-workspace #mobileDock [data-phone-panel="colors"] { display: none; }
+  body:not(.is-forest-workspace) .canvas-stage { display: flex; flex-direction: column; }
+  body:not(.is-forest-workspace) .canvas-scroller { flex: 1; min-height: 0; height: 0; }
+  body:not(.is-forest-workspace) .quick-colors {
+    display: flex; flex: none; order: 2; gap: 12px; padding: 8px;
+    overflow-x: auto; margin-top: 4px; background: var(--paper); border-radius: 22px;
+  }
 }
